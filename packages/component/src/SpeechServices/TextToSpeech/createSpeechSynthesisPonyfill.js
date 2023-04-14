@@ -10,38 +10,6 @@ import patchOptions from '../patchOptions';
 import SpeechSynthesisEvent from './SpeechSynthesisEvent';
 import SpeechSynthesisUtterance from './SpeechSynthesisUtterance';
 
-// Classe CustomSpeakerAudioDestination héritant de SpeakerAudioDestination pour gérer le volume et la mise en sourdine
-class CustomSpeakerAudioDestination extends SpeakerAudioDestination {
-  constructor() {
-    super();
-    this._isMuted = false;
-    this._previousVolume = 1;
-  }
-
-  // Fonction pour mettre en sourdine
-  mute() {
-    console.warn('Muted');
-    this.privAudio.muted = true;
-    this._isMuted = true;
-  }
-
-  // Fonction pour désactiver la mise en sourdine
-  unmute() {
-    console.warn('Unmuted');
-    this.privAudio.muted = false;
-  }
-
-  // Accesseur pour obtenir le volume
-  get volume() {
-    return this.privAudio.volume;
-  }
-
-  // Mutateur pour définir le volume
-  set volume(value) {
-    this.privAudio.volume = value;
-  }
-}
-
 export default options => {
   // Extraction des paramètres depuis options en utilisant la fonction patchOptions
   const {
@@ -67,7 +35,7 @@ export default options => {
     constructor() {
       super();
 
-      this.speakerAudioDestination = new CustomSpeakerAudioDestination();
+      this.speakerAudioDestination = new SpeakerAudioDestination();
 
       this.audioConfig = audioContext
         ? SpeechSDK.AudioConfig.fromAudioContext(audioContext)
@@ -80,7 +48,7 @@ export default options => {
       this.initSpeechSynthesizer();
     }
 
-    // Fonction asynchrone qui initialise le synthétiseur vocal
+    // Fonction asynchrone qui initialise le synthétiseur vocalclasse ""
     async initSpeechSynthesizer() {
       const { subscriptionKey, region } = await fetchCredentials();
 
@@ -99,7 +67,7 @@ export default options => {
 
     // Fonction pour recréer le synthétiseur
     recreateSynthesizer() {
-      this.speakerAudioDestination = new CustomSpeakerAudioDestination();
+      this.speakerAudioDestination = new SpeakerAudioDestination();
 
       this.audioConfig = audioContext
         ? SpeechSDK.AudioConfig.fromAudioContext(audioContext)
@@ -128,48 +96,42 @@ export default options => {
       setEventAttributeValue(this, 'voiceschanged', value);
     }
 
-    pauseSpeaker() {
-      this.speakerAudioDestination.pause();
-    }
-
-    resumeSpeaker() {
-      this.speakerAudioDestination.resume();
-    }
-
-    // Accesseur pour obtenir le temps écoulé
-    get currentTime() {
-      return this.speakerAudioDestination.currentTime;
-    }
-
-    // Fonction qui met en pause la lecture en cours
-    pause() {
-      this.queue.pause();
-    }
-
-    // Fonction qui reprend la lecture en cours
-    resume() {
-      this.queue.resume();
-    }
-
     // Fonction asynchrone qui lit le texte passé en paramètre
     speak(utterance) {
-      if (this.synth.properties.getProperty('privDisposed')) {
-        this.synth = new SpeechSDK.SpeechSynthesizer(this.speechConfig, this.audioConfig);
-      } else {
-        console.warn('opened');
-        this.synth = new SpeechSDK.SpeechSynthesizer(this.speechConfig, this.audioConfig);
-      }
+      this.speakerAudioDestination.internalAudio.src = "";
+      this.recreateSynthesizer();
 
       // Initialisation du SpeakerAudioDestination
       this.speakerAudioDestination.onAudioStart = () => {
         utterance.onstart && utterance.onstart();
         console.warn('audioStart');
 
-        setTimeout(() => {
-          console.warn('Current Time:', this.speakerAudioDestination.privAudio.currentTime);
-          this.speakerAudioDestination.privAudio.volume();
-          // eslint-disable-next-line no-magic-numbers
-        }, 2500);
+          setTimeout(() => {
+            this.speakerAudioDestination.mute();
+            console.warn('Current Time:', this.speakerAudioDestination.currentTime);
+            console.warn('Volume:', this.speakerAudioDestination.volume);
+            // eslint-disable-next-line no-magic-numbers
+          }, 3000);
+
+          setTimeout(() => {
+            this.speakerAudioDestination.unmute();
+            console.warn('Current Time:', this.speakerAudioDestination.currentTime);
+            console.warn('Volume:', this.speakerAudioDestination.volume);
+            this.speakerAudioDestination.volume = 0.5;
+            // eslint-disable-next-line no-magic-numbers
+          }, 5000);
+
+          setTimeout(() => {
+            console.warn(this.speakerAudioDestination.privIsPaused);
+            this.speakerAudioDestination.pause();
+            // eslint-disable-next-line no-magic-numbers
+          }, 6000);
+
+          setTimeout(() => {
+            console.warn(this.speakerAudioDestination.privIsPaused);
+            this.speakerAudioDestination.resume();
+            // eslint-disable-next-line no-magic-numbers
+          }, 9000);
       };
 
       this.speakerAudioDestination.onAudioEnd = () => {
@@ -250,7 +212,7 @@ export default options => {
           result => {
             // Vérification du résultat de la synthèse vocale
             if (result) {
-              this.synth.close(() => this.recreateSynthesizer());
+              this.synth.close();
             } else {
               console.error('No synthesis result.');
               reject(new Error('No synthesis result.'));
