@@ -62,6 +62,7 @@ class SpeechSynthesisUtterance extends EventTarget {
     this.onpause = null;
     this.onresume = null;
     this.onstart = null;
+    this.onviseme = null;
 
     this.audioElement = new Audio();
   }
@@ -128,6 +129,14 @@ class SpeechSynthesisUtterance extends EventTarget {
 
   set onstart(value) {
     setEventAttributeValue(this, 'start', value);
+  }
+
+  get onviseme() {
+    return getEventAttributeValue(this, 'viseme');
+  }
+
+  set onviseme(value) {
+    setEventAttributeValue(this, 'viseme', value);
   }
 
   get pitch() {

@@ -3,7 +3,6 @@ import { EventTarget, getEventAttributeValue, setEventAttributeValue } from 'eve
 import onErrorResumeNext from 'on-error-resume-next';
 import SpeechSDK from '../SpeechSDK';
 import { SpeakerAudioDestination, AudioConfig } from 'microsoft-cognitiveservices-speech-sdk';
-import AudioContextQueue from './AudioContextQueue';
 import fetchCustomVoices from './fetchCustomVoices';
 import fetchVoices from './fetchVoices';
 import patchOptions from '../patchOptions';
@@ -30,35 +29,51 @@ export default options => {
     return {};
   }
 
-  // Classe qui hérite de la classe EventTarget pour manipuler des événements
   class SpeechSynthesis extends EventTarget {
     constructor() {
       super();
 
+      this.speaking = false;
       this.speakerAudioDestination = new SpeakerAudioDestination();
-
       this.audioConfig = audioContext
         ? SpeechSDK.AudioConfig.fromAudioContext(audioContext)
         : AudioConfig.fromSpeakerOutput(this.speakerAudioDestination);
 
-      // Initialisation de la queue
-      this.queue = new AudioContextQueue({ audioContext, ponyfill });
 
-      // Initialisation du synthétiseur
+      // Init synthesizer
       this.initSpeechSynthesizer();
+    }
+
+    mute() {
+      this.speakerAudioDestination && this.speakerAudioDestination.mute();
+    }
+
+    unmute() {
+      this.speakerAudioDestination && this.speakerAudioDestination.unmute();
+    }
+
+    getVolume() {
+      // eslint-disable-next-line no-magic-numbers
+      return this.speakerAudioDestination ? this.speakerAudioDestination.volume : -1;
+    }
+
+    setVolume(value) {
+      this.speakerAudioDestination && (this.speakerAudioDestination.volume = value);
     }
 
     // Fonction asynchrone qui initialise le synthétiseur vocalclasse ""
     async initSpeechSynthesizer() {
-      const { subscriptionKey, region } = await fetchCredentials();
+      const { subscriptionKey, authorizationToken ,region } = await fetchCredentials();
 
-      if (!subscriptionKey) {
-        throw new Error('subscriptionKey is null or undefined');
+      if (!authorizationToken && !subscriptionKey) {
+        throw new Error('no subscription data : authorizationToken or subscriptionKey needed');
       }
 
       // Configuration du synthétiseur et de l'audio
-      this.speechConfig = SpeechSDK.SpeechConfig.fromSubscription(subscriptionKey, region);
-
+      this.speechConfig = authorizationToken ?
+        SpeechSDK.SpeechConfig.fromAuthorizationToken(authorizationToken, region)
+        :
+        SpeechSDK.SpeechConfig.fromSubscription(subscriptionKey, region)
       this.synth = new SpeechSDK.SpeechSynthesizer(this.speechConfig, this.audioConfig);
 
       // Mise à jour des voix disponibles
@@ -76,9 +91,19 @@ export default options => {
       this.synth = new SpeechSDK.SpeechSynthesizer(this.speechConfig, this.audioConfig);
     }
 
-    // Fonction qui arrête la lecture en cours
+    // Cancel current synthesis
     cancel() {
-      this.queue.stop();
+      if (this.synth.synthesisStarted && !this.synth.synthesisCompleted) {
+        this.synth.close();
+      } else if (this.speaking) {
+        try {
+          this.speakerAudioDestination.pause();
+          this.speakerAudioDestination.onAudioEnd();
+          this.speakerAudioDestination.close();
+        } catch(e) {
+          console.log(e);
+        }
+      }
     }
 
     // Fonction qui retourne un tableau vide des voix disponibles
@@ -96,171 +121,89 @@ export default options => {
       setEventAttributeValue(this, 'voiceschanged', value);
     }
 
-    // Fonction asynchrone qui lit le texte passé en paramètre
     speak(utterance) {
-      this.speakerAudioDestination.internalAudio.src = "";
-      this.recreateSynthesizer();
-
-      // Initialisation du SpeakerAudioDestination
-      this.speakerAudioDestination.onAudioStart = () => {
-        utterance.onstart && utterance.onstart();
-        console.warn('audioStart');
-
-          setTimeout(() => {
-            this.speakerAudioDestination.mute();
-            console.warn('Current Time:', this.speakerAudioDestination.currentTime);
-            console.warn('Volume:', this.speakerAudioDestination.volume);
-            // eslint-disable-next-line no-magic-numbers
-          }, 3000);
-
-          setTimeout(() => {
-            this.speakerAudioDestination.unmute();
-            console.warn('Current Time:', this.speakerAudioDestination.currentTime);
-            console.warn('Volume:', this.speakerAudioDestination.volume);
-            this.speakerAudioDestination.volume = 0.5;
-            // eslint-disable-next-line no-magic-numbers
-          }, 5000);
-
-          setTimeout(() => {
-            console.warn(this.speakerAudioDestination.privIsPaused);
-            this.speakerAudioDestination.pause();
-            // eslint-disable-next-line no-magic-numbers
-          }, 6000);
-
-          setTimeout(() => {
-            console.warn(this.speakerAudioDestination.privIsPaused);
-            this.speakerAudioDestination.resume();
-            // eslint-disable-next-line no-magic-numbers
-          }, 9000);
-      };
-
-      this.speakerAudioDestination.onAudioEnd = () => {
-        utterance.onend && utterance.onend();
-        console.warn('audioEnd');
-      };
-
-      // Vérification si l'objet passé en paramètre est une instance de SpeechSynthesisUtterance
+      // Test utterance
       if (!(utterance instanceof SpeechSynthesisUtterance)) {
         throw new Error('invalid utterance');
       }
 
-      // Fonction pour gérer les événements
-      function handleEvent(eventName, synth, e, utterance) {
-        // console.log(`Event "${eventName}" triggered`, e);
+      this.speakerAudioDestination.isClosed && this.recreateSynthesizer()    
 
-        // Gestion des différents types d'événements
-        switch (eventName) {
-          case 'start':
-            break;
-          case 'end':
-            break;
-          case 'error':
-            utterance.onerror && utterance.onerror();
-            console.error('Synthesis error:', e);
-            break;
-          case 'wordBoundary':
-            utterance.onWordBoundary && utterance.onWordBoundary(e);
-            break;
-          case 'visemeReceived':
-            utterance.onVisemeReceived && utterance.onVisemeReceived(e);
-            break;
-          case 'bookmarkReached':
-            utterance.onBookmarkReached && utterance.onBookmarkReached(e);
-            break;
-          default:
-            console.warn(`Unhandled event type: ${eventName}`);
-        }
+      // Set volume / mute status if present in the utterance parameters
+      utterance.volume && (this.speakerAudioDestination.volume = utterance.volume);
+
+      // SpeakerAudioDestination events callbacks
+      this.speakerAudioDestination.onAudioStart = () => {
+        this.speaking = true;
+        utterance.onstart && utterance.onstart();
+        console.log('audioStart');
       }
 
+      this.speakerAudioDestination.onAudioEnd = () => {
+        this.speaking = false;
+        utterance.onend && utterance.onend();
+        console.log('audioEnd');
+      };
+
+      // Events callbacks
       this.synth.synthesisStarted = () => {
-        handleEvent('start', this.synth, null, utterance);
+        utterance.onSynthesisStart && utterance.onSynthesisStart();
       };
 
       this.synth.synthesisCompleted = () => {
-        handleEvent('end', this.synth, null, utterance);
+        utterance.onSynthesisCompleted && utterance.onSynthesisCompleted();
+      };
+
+      this.synth.error = (synth, e) => {
+        utterance.onSynthesisError && utterance.onSynthesisError(e);
       };
 
       this.synth.wordBoundary = (synth, e) => {
-        handleEvent('wordBoundary', this.synth, e, utterance);
+        utterance.onboundary && utterance.onboundary(e);
       };
 
       this.synth.visemeReceived = (synth, e) => {
-        handleEvent('visemeReceived', this.synth, e, utterance);
+        console.log('Viseme : ', e);
+        utterance.onviseme && utterance.onviseme(e);
       };
 
       this.synth.bookmarkReached = (synth, e) => {
-        handleEvent('bookmarkReached', this.synth, e, utterance);
+        utterance.onmark && utterance.onmark(e);
       };
 
       const isSSML = /<speak[\s\S]*?>/iu.test(utterance.text);
-      let ssml = '';
 
-      if (isSSML) {
-        ssml = utterance.text;
-      } else {
-        ssml = `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xmlns:mstts='http://www.w3.org/2001/mstts' xmlns:emo='http://www.w3.org/2009/10/emotionml' xml:lang='en-US'><voice name='Microsoft Server Speech Text to Speech Voice (fr-FR, AlainNeural)'>${utterance.text}<bookmark mark='end' /></voice></speak>`;
-      }
-
-      this.synth.error = (synth, e) => {
-        handleEvent('error', this.synth, e, utterance);
-      };
-
-      // Création d'une promesse qui résout lorsque la synthèse est terminée
-      return new Promise((resolve, reject) => {
+      return isSSML ? new Promise(reject => {
         this.synth.speakSsmlAsync(
-          ssml,
+          utterance.text,
           result => {
-            // Vérification du résultat de la synthèse vocale
             if (result) {
               this.synth.close();
             } else {
-              console.error('No synthesis result.');
               reject(new Error('No synthesis result.'));
             }
           },
           error => {
-            console.error('Synthesis error:', error);
-            reject(error);
+            reject(new Error('Synthesis failed : ', error));
           }
         );
-      });
-    }
-
-    // Fonction statique pour créer un élément audio avec des gestionnaires d'événements
-    static createAudioElementWithEventHandlers(url, utterance, handleError) {
-      if (!url) {
-        console.error('URL is undefined or null');
-        return;
-      }
-
-      // Création d'un nouvel élément audio
-      const audioElement = new Audio(url);
-
-      // Renvoi de la promesse avec l'élément audio créé
-      return new Promise((resolve, reject) => {
-        // Ajout des gestionnaires d'événements pour les événements 'ended', 'error' et 'canplaythrough'
-        audioElement.addEventListener('ended', () => {
-          utterance.dispatchEvent(new Event('end'));
-          resolve();
-        });
-
-        audioElement.addEventListener('error', event => {
-          handleError({ error: event.error, message: 'Error playing audio' });
-          reject(event.error);
-        });
-
-        audioElement.addEventListener('canplaythrough', () => {
-          resolve(audioElement);
-        });
-
-        // Chargement de l'élément audio
-        audioElement.load();
-      });
-    }
-
-    // Fonction qui renvoie un booléen indiquant si la lecture est en cours ou non
-    get speaking() {
-      return this.queue.speaking;
+      })
+      :
+      new Promise(reject => {
+        this.synth.speakTextAsync(
+          utterance.text,
+          result => {
+            if (result) {
+              this.synth.close();
+            } else {
+              reject(new Error('No synthesis result.'));
+            }
+          },
+          error => {
+            reject(new Error('Synthesis failed : ', error));
+          }
+        );
+      })
     }
 
     // Fonction asynchrone qui met à jour les voix disponibles

@@ -22,6 +22,7 @@ rules:
   no-console:
   - error
   - allow:
+    - log
     - error
     - warn
   # no-extra-parens: error # conflicts with prettier
