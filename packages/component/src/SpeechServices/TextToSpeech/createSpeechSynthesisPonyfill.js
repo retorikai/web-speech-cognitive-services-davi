@@ -1,4 +1,4 @@
-// Importer les modules nécessaires
+// Import necessary modules
 import { EventTarget, getEventAttributeValue, setEventAttributeValue } from 'event-target-shim/es5';
 import onErrorResumeNext from 'on-error-resume-next';
 import SpeechSDK from '../SpeechSDK';
@@ -10,7 +10,7 @@ import SpeechSynthesisEvent from './SpeechSynthesisEvent';
 import SpeechSynthesisUtterance from './SpeechSynthesisUtterance';
 
 export default options => {
-  // Extraction des paramètres depuis options en utilisant la fonction patchOptions
+  // Extract parameters from options using the patchOptions function
   const {
     audioContext,
     fetchCredentials,
@@ -20,7 +20,7 @@ export default options => {
     speechSynthesisDeploymentId
   } = patchOptions(options);
 
-  // Vérification si le navigateur supporte l'API Web Audio, si non, on retourne un objet vide
+  // Check if the browser supports the Web Audio API, if not, return an empty object
   if (!audioContext && !ponyfill.AudioContext) {
     console.warn(
       'web-speech-cognitive-services: This browser does not support Web Audio and it will not work with Cognitive Services Speech Services.'
@@ -38,7 +38,6 @@ export default options => {
       this.audioConfig = audioContext
         ? SpeechSDK.AudioConfig.fromAudioContext(audioContext)
         : AudioConfig.fromSpeakerOutput(this.speakerAudioDestination);
-
 
       // Init synthesizer
       this.initSpeechSynthesizer();
@@ -61,26 +60,25 @@ export default options => {
       this.speakerAudioDestination && (this.speakerAudioDestination.volume = value);
     }
 
-    // Fonction asynchrone qui initialise le synthétiseur vocalclasse ""
+    // Asynchronous function that initializes the speech synthesizer class
     async initSpeechSynthesizer() {
-      const { subscriptionKey, authorizationToken ,region } = await fetchCredentials();
+      const { subscriptionKey, authorizationToken, region } = await fetchCredentials();
 
       if (!authorizationToken && !subscriptionKey) {
         throw new Error('no subscription data : authorizationToken or subscriptionKey needed');
       }
 
-      // Configuration du synthétiseur et de l'audio
-      this.speechConfig = authorizationToken ?
-        SpeechSDK.SpeechConfig.fromAuthorizationToken(authorizationToken, region)
-        :
-        SpeechSDK.SpeechConfig.fromSubscription(subscriptionKey, region)
+      // Configure the synthesizer and audio
+      this.speechConfig = authorizationToken
+        ? SpeechSDK.SpeechConfig.fromAuthorizationToken(authorizationToken, region)
+        : SpeechSDK.SpeechConfig.fromSubscription(subscriptionKey, region);
       this.synth = new SpeechSDK.SpeechSynthesizer(this.speechConfig, this.audioConfig);
 
-      // Mise à jour des voix disponibles
+      // Update available voices
       this.updateVoices();
     }
 
-    // Fonction pour recréer le synthétiseur
+    // Function to recreate the synthesizer
     recreateSynthesizer() {
       this.speakerAudioDestination = new SpeakerAudioDestination();
 
@@ -100,23 +98,23 @@ export default options => {
           this.speakerAudioDestination.pause();
           this.speakerAudioDestination.onAudioEnd();
           this.speakerAudioDestination.close();
-        } catch(e) {
+        } catch (e) {
           console.log(e);
         }
       }
     }
 
-    // Fonction qui retourne un tableau vide des voix disponibles
+    // Function that returns an empty array of available voices
     getVoices() {
       return this.EMPTY_ARRAY;
     }
 
-    // Fonction qui retourne l'attribut 'onvoiceschanged' de l'objet
+    // Function that returns the 'onvoiceschanged' attribute of the object
     get onvoiceschanged() {
       return getEventAttributeValue(this, 'voiceschanged');
     }
 
-    // Fonction qui met à jour l'attribut 'onvoiceschanged' de l'objet
+    // Function that updates the 'onvoiceschanged' attribute of the object
     set onvoiceschanged(value) {
       setEventAttributeValue(this, 'voiceschanged', value);
     }
@@ -127,7 +125,7 @@ export default options => {
         throw new Error('invalid utterance');
       }
 
-      this.speakerAudioDestination.isClosed && this.recreateSynthesizer()    
+      this.speakerAudioDestination.isClosed && this.recreateSynthesizer();
 
       // Set volume / mute status if present in the utterance parameters
       utterance.volume && (this.speakerAudioDestination.volume = utterance.volume);
@@ -137,7 +135,7 @@ export default options => {
         this.speaking = true;
         utterance.onstart && utterance.onstart();
         console.log('audioStart');
-      }
+      };
 
       this.speakerAudioDestination.onAudioEnd = () => {
         this.speaking = false;
@@ -173,46 +171,46 @@ export default options => {
 
       const isSSML = /<speak[\s\S]*?>/iu.test(utterance.text);
 
-      return isSSML ? new Promise(reject => {
-        this.synth.speakSsmlAsync(
-          utterance.text,
-          result => {
-            if (result) {
-              this.synth.close();
-            } else {
-              reject(new Error('No synthesis result.'));
-            }
-          },
-          error => {
-            reject(new Error('Synthesis failed : ', error));
-          }
-        );
-      })
-      :
-      new Promise(reject => {
-        this.synth.speakTextAsync(
-          utterance.text,
-          result => {
-            if (result) {
-              this.synth.close();
-            } else {
-              reject(new Error('No synthesis result.'));
-            }
-          },
-          error => {
-            reject(new Error('Synthesis failed : ', error));
-          }
-        );
-      })
+      return isSSML
+        ? new Promise(reject => {
+            this.synth.speakSsmlAsync(
+              utterance.text,
+              result => {
+                if (result) {
+                  this.synth.close();
+                } else {
+                  reject(new Error('No synthesis result.'));
+                }
+              },
+              error => {
+                reject(new Error('Synthesis failed : ', error));
+              }
+            );
+          })
+        : new Promise(reject => {
+            this.synth.speakTextAsync(
+              utterance.text,
+              result => {
+                if (result) {
+                  this.synth.close();
+                } else {
+                  reject(new Error('No synthesis result.'));
+                }
+              },
+              error => {
+                reject(new Error('Synthesis failed : ', error));
+              }
+            );
+          });
     }
 
-    // Fonction asynchrone qui met à jour les voix disponibles
+    // Asynchronous function that updates available voices
     async updateVoices() {
       const { customVoiceHostname, region, speechSynthesisHostname, subscriptionKey } = await fetchCredentials();
 
       if (speechSynthesisDeploymentId) {
         await onErrorResumeNext(async () => {
-          // Récupération des voix personnalisées pour un déploiement spécifique (si renseigné)
+          // Retrieve custom voices for a specific deployment (if provided)
           const voices = await fetchCustomVoices({
             customVoiceHostname,
             deploymentId: speechSynthesisDeploymentId,
@@ -224,7 +222,7 @@ export default options => {
           this.getVoices = () => voices;
         });
       } else {
-        // Récupération des voix standard
+        // Retrieve standard voices
         await onErrorResumeNext(async () => {
           const voices = await fetchVoices({
             region,
@@ -236,12 +234,12 @@ export default options => {
         });
       }
 
-      // Lancement de l'événement 'voiceschanged' pour notifier la mise à jour des voix
+      // Trigger the 'voiceschanged' event to notify the voices update
       this.dispatchEvent(new SpeechSynthesisEvent('voiceschanged'));
     }
   }
 
-  // Renvoi de l'objet contenant l'instance de la synthèse vocale, les classes SpeechSynthesisEvent et SpeechSynthesisUtterance
+  // Return the object containing the instance of the speech synthesis, the SpeechSynthesisEvent and SpeechSynthesisUtterance classes
   return {
     speechSynthesis: new SpeechSynthesis(),
     SpeechSynthesisEvent,
