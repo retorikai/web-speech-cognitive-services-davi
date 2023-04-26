@@ -41,6 +41,8 @@ export default options => {
 
       // Init synthesizer
       this.initSpeechSynthesizer();
+
+      this.queue = [];
     }
 
     mute() {
@@ -125,56 +127,63 @@ export default options => {
         throw new Error('invalid utterance');
       }
 
+      this.queue.push(utterance);
+
+      const processQueue = () => {
+        if (this.queue.length && !this.speaking) {
+          const currentUtterance = this.queue.shift();
+
       this.speakerAudioDestination.isClosed && this.recreateSynthesizer();
 
       // Set volume / mute status if present in the utterance parameters
-      utterance.volume && (this.speakerAudioDestination.volume = utterance.volume);
+      currentUtterance.volume && (this.speakerAudioDestination.volume = currentUtterance.volume);
 
       // SpeakerAudioDestination events callbacks
       this.speakerAudioDestination.onAudioStart = () => {
         this.speaking = true;
-        utterance.onstart && utterance.onstart();
-        console.log('audioStart');
+        currentUtterance.onstart && currentUtterance.onstart();
+        // console.log('audioStart');
       };
 
       this.speakerAudioDestination.onAudioEnd = () => {
         this.speaking = false;
-        utterance.onend && utterance.onend();
-        console.log('audioEnd');
+        currentUtterance.onend && currentUtterance.onend();
+        // console.log('audioEnd');
+        processQueue();
       };
 
       // Events callbacks
       this.synth.synthesisStarted = () => {
-        utterance.onSynthesisStart && utterance.onSynthesisStart();
+        currentUtterance.onSynthesisStart && currentUtterance.onSynthesisStart();
       };
 
       this.synth.synthesisCompleted = () => {
-        utterance.onSynthesisCompleted && utterance.onSynthesisCompleted();
+        currentUtterance.onSynthesisCompleted && currentUtterance.onSynthesisCompleted();
       };
 
       this.synth.error = (synth, e) => {
-        utterance.onSynthesisError && utterance.onSynthesisError(e);
+        currentUtterance.onSynthesisError && currentUtterance.onSynthesisError(e);
       };
 
       this.synth.wordBoundary = (synth, e) => {
-        utterance.onboundary && utterance.onboundary(e);
+        currentUtterance.onboundary && currentUtterance.onboundary(e);
       };
 
       this.synth.visemeReceived = (synth, e) => {
         console.log('Viseme : ', e);
-        utterance.onviseme && utterance.onviseme(e);
+        currentUtterance.onviseme && currentUtterance.onviseme(e);
       };
 
       this.synth.bookmarkReached = (synth, e) => {
-        utterance.onmark && utterance.onmark(e);
+        currentUtterance.onmark && currentUtterance.onmark(e);
       };
 
-      const isSSML = /<speak[\s\S]*?>/iu.test(utterance.text);
+      const isSSML = /<speak[\s\S]*?>/iu.test(currentUtterance.text);
 
       return isSSML
         ? new Promise(reject => {
             this.synth.speakSsmlAsync(
-              utterance.text,
+              currentUtterance.text,
               result => {
                 if (result) {
                   this.synth.close();
@@ -189,7 +198,7 @@ export default options => {
           })
         : new Promise(reject => {
             this.synth.speakTextAsync(
-              utterance.text,
+              currentUtterance.text,
               result => {
                 if (result) {
                   this.synth.close();
@@ -203,6 +212,9 @@ export default options => {
             );
           });
     }
+  }
+    processQueue();
+  }
 
     // Asynchronous function that updates available voices
     async updateVoices() {
