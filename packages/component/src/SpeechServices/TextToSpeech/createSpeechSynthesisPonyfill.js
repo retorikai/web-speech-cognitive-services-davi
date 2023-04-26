@@ -42,6 +42,7 @@ export default options => {
       // Init synthesizer
       this.initSpeechSynthesizer();
 
+      // Initialize the queue for managing the utterances
       this.queue = [];
     }
 
@@ -127,11 +128,13 @@ export default options => {
         throw new Error('invalid utterance');
       }
 
+      // Add the utterance to the queue
       this.queue.push(utterance);
 
+      // Function to process the queued utterances
       const processQueue = () => {
         if (this.queue.length && !this.speaking) {
-          const currentUtterance = this.queue.shift();
+          const currentUtterance = this.queue.shift(); // Get the next utterance from the queue
 
       this.speakerAudioDestination.isClosed && this.recreateSynthesizer();
 
@@ -142,14 +145,14 @@ export default options => {
       this.speakerAudioDestination.onAudioStart = () => {
         this.speaking = true;
         currentUtterance.onstart && currentUtterance.onstart();
-        // console.log('audioStart');
+        console.log('audioStart');
       };
 
       this.speakerAudioDestination.onAudioEnd = () => {
         this.speaking = false;
         currentUtterance.onend && currentUtterance.onend();
-        // console.log('audioEnd');
-        processQueue();
+        console.log('audioEnd');
+        processQueue(); // Process the next queued utterance after the current one has finished
       };
 
       // Events callbacks
@@ -213,7 +216,7 @@ export default options => {
           });
     }
   }
-    processQueue();
+    processQueue(); // Start processing the queue
   }
 
     // Asynchronous function that updates available voices
