@@ -65,16 +65,29 @@ export default options => {
 
     // Asynchronous function that initializes the speech synthesizer class
     async initSpeechSynthesizer() {
-      const { subscriptionKey, authorizationToken, region } = await fetchCredentials();
+      const { speechSynthesisHostname, subscriptionKey, authorizationToken, region } = await fetchCredentials();
 
       if (!authorizationToken && !subscriptionKey) {
         throw new Error('no subscription data : authorizationToken or subscriptionKey needed');
       }
 
       // Configure the synthesizer and audio
-      this.speechConfig = authorizationToken
-        ? SpeechSDK.SpeechConfig.fromAuthorizationToken(authorizationToken, region)
-        : SpeechSDK.SpeechConfig.fromSubscription(subscriptionKey, region);
+      if (speechSynthesisDeploymentId) {
+        const hostname = speechSynthesisHostname || `${region}.customvoice.api.speech.microsoft.com`;
+        const url = `https://${encodeURI(hostname)}/api/texttospeech/v2.0/endpoints/${encodeURIComponent(
+          speechSynthesisDeploymentId
+        )}`;
+
+        this.speechConfig = SpeechSDK.SpeechConfig.fromEndpoint(url, subscriptionKey);
+      } else {
+        if (speechSynthesisHostname) {
+          this.speechConfig = SpeechSDK.SpeechConfig.fromHost(speechSynthesisHostname, subscriptionKey);
+        } else {
+          this.speechConfig = authorizationToken
+            ? SpeechSDK.SpeechConfig.fromAuthorizationToken(authorizationToken, region)
+            : SpeechSDK.SpeechConfig.fromSubscription(subscriptionKey, region);
+        }
+      }
       this.synth = new SpeechSDK.SpeechSynthesizer(this.speechConfig, this.audioConfig);
 
       // Update available voices
@@ -104,6 +117,21 @@ export default options => {
         } catch (e) {
           console.log(e);
         }
+      }
+      this.queue = [];
+    }
+
+    // Pause current synthesis
+    pause() {
+      if (this.speakerAudioDestination) {
+        this.speakerAudioDestination.pause();
+      }
+    }
+
+    // Resume current synthesis
+    resume() {
+      if (this.speakerAudioDestination) {
+        this.speakerAudioDestination.resume();
       }
     }
 
@@ -136,92 +164,95 @@ export default options => {
         if (this.queue.length && !this.speaking) {
           const currentUtterance = this.queue.shift(); // Get the next utterance from the queue
 
-      this.speakerAudioDestination.isClosed && this.recreateSynthesizer();
+          this.speakerAudioDestination.isClosed && this.recreateSynthesizer();
 
-      // Set volume / mute status if present in the utterance parameters
-      currentUtterance.volume && (this.speakerAudioDestination.volume = currentUtterance.volume);
+          // Set volume / mute status if present in the utterance parameters
+          currentUtterance.volume && (this.speakerAudioDestination.volume = currentUtterance.volume);
 
-      // SpeakerAudioDestination events callbacks
-      this.speakerAudioDestination.onAudioStart = () => {
-        this.speaking = true;
-        currentUtterance.onstart && currentUtterance.onstart();
-        console.log('audioStart');
+          // SpeakerAudioDestination events callbacks
+          this.speakerAudioDestination.onAudioStart = () => {
+            this.speaking = true;
+            currentUtterance.onstart && currentUtterance.onstart();
+            console.log('audioStart');
+          };
+
+          this.speakerAudioDestination.onAudioEnd = () => {
+            this.speaking = false;
+            currentUtterance.onend && currentUtterance.onend();
+            console.log('audioEnd');
+            processQueue(); // Process the next queued utterance after the current one has finished
+          };
+
+          // Events callbacks
+          this.synth.synthesisStarted = () => {
+            currentUtterance.onSynthesisStart && currentUtterance.onSynthesisStart();
+          };
+
+          this.synth.synthesisCompleted = () => {
+            currentUtterance.onSynthesisCompleted && currentUtterance.onSynthesisCompleted();
+          };
+
+          this.synth.error = (synth, e) => {
+            currentUtterance.onSynthesisError && currentUtterance.onSynthesisError(e);
+          };
+
+          this.synth.wordBoundary = (synth, e) => {
+            currentUtterance.onboundary && currentUtterance.onboundary(e);
+          };
+
+          this.synth.visemeReceived = (synth, e) => {
+            console.log('Viseme : ', e);
+            currentUtterance.onviseme && currentUtterance.onviseme(e);
+          };
+
+          this.synth.bookmarkReached = (synth, e) => {
+            currentUtterance.onmark && currentUtterance.onmark(e);
+          };
+
+          const isSSML = /<speak[\s\S]*?>/iu.test(currentUtterance.text);
+
+          return isSSML
+            ? new Promise(reject => {
+                this.synth.speakSsmlAsync(
+                  currentUtterance.text,
+                  result => {
+                    if (result) {
+                      this.synth.close();
+                    } else {
+                      reject(new Error('No synthesis result.'));
+                    }
+                  },
+                  error => {
+                    reject(new Error('Synthesis failed : ', error));
+                  }
+                );
+              })
+            : new Promise(reject => {
+                this.synth.speakTextAsync(
+                  currentUtterance.text,
+                  result => {
+                    if (result) {
+                      this.synth.close();
+                    } else {
+                      reject(new Error('No synthesis result.'));
+                    }
+                  },
+                  error => {
+                    reject(new Error('Synthesis failed : ', error));
+                  }
+                );
+              });
+        }
       };
-
-      this.speakerAudioDestination.onAudioEnd = () => {
-        this.speaking = false;
-        currentUtterance.onend && currentUtterance.onend();
-        console.log('audioEnd');
-        processQueue(); // Process the next queued utterance after the current one has finished
-      };
-
-      // Events callbacks
-      this.synth.synthesisStarted = () => {
-        currentUtterance.onSynthesisStart && currentUtterance.onSynthesisStart();
-      };
-
-      this.synth.synthesisCompleted = () => {
-        currentUtterance.onSynthesisCompleted && currentUtterance.onSynthesisCompleted();
-      };
-
-      this.synth.error = (synth, e) => {
-        currentUtterance.onSynthesisError && currentUtterance.onSynthesisError(e);
-      };
-
-      this.synth.wordBoundary = (synth, e) => {
-        currentUtterance.onboundary && currentUtterance.onboundary(e);
-      };
-
-      this.synth.visemeReceived = (synth, e) => {
-        console.log('Viseme : ', e);
-        currentUtterance.onviseme && currentUtterance.onviseme(e);
-      };
-
-      this.synth.bookmarkReached = (synth, e) => {
-        currentUtterance.onmark && currentUtterance.onmark(e);
-      };
-
-      const isSSML = /<speak[\s\S]*?>/iu.test(currentUtterance.text);
-
-      return isSSML
-        ? new Promise(reject => {
-            this.synth.speakSsmlAsync(
-              currentUtterance.text,
-              result => {
-                if (result) {
-                  this.synth.close();
-                } else {
-                  reject(new Error('No synthesis result.'));
-                }
-              },
-              error => {
-                reject(new Error('Synthesis failed : ', error));
-              }
-            );
-          })
-        : new Promise(reject => {
-            this.synth.speakTextAsync(
-              currentUtterance.text,
-              result => {
-                if (result) {
-                  this.synth.close();
-                } else {
-                  reject(new Error('No synthesis result.'));
-                }
-              },
-              error => {
-                reject(new Error('Synthesis failed : ', error));
-              }
-            );
-          });
+      processQueue(); // Start processing the queue
     }
-  }
-    processQueue(); // Start processing the queue
-  }
 
     // Asynchronous function that updates available voices
     async updateVoices() {
       const { customVoiceHostname, region, speechSynthesisHostname, subscriptionKey } = await fetchCredentials();
+
+      // const voices = await this.synth.getVoicesAsync();
+      // this.getVoices = () => voices;
 
       if (speechSynthesisDeploymentId) {
         await onErrorResumeNext(async () => {
