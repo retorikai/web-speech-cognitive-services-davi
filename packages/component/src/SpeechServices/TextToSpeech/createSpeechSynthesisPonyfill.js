@@ -44,6 +44,8 @@ export default options => {
 
       // Initialize the queue for managing the utterances
       this.queue = [];
+
+      this.canceled = false;
     }
 
     mute() {
@@ -109,6 +111,7 @@ export default options => {
     cancel() {
       if (this.synth.synthesisStarted && !this.synth.synthesisCompleted) {
         this.synth.close();
+        this.queue = [];
       } else if (this.speaking) {
         try {
           this.speakerAudioDestination.pause();
@@ -119,6 +122,7 @@ export default options => {
         }
       }
       this.queue = [];
+      this.canceled = true;
     }
 
     // Pause current synthesis
@@ -130,7 +134,7 @@ export default options => {
 
     // Resume current synthesis
     resume() {
-      if (this.speakerAudioDestination) {
+      if (this.speakerAudioDestination && !this.canceled) {
         this.speakerAudioDestination.resume();
       }
     }
@@ -245,6 +249,7 @@ export default options => {
         }
       };
       processQueue(); // Start processing the queue
+      this.canceled = false; // Reset canceled state after processing the queue
     }
 
     // Asynchronous function that updates available voices
