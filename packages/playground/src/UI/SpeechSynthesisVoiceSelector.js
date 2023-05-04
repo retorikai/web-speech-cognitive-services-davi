@@ -31,8 +31,8 @@ const SpeechSynthesisVoiceSelector = () => {
       onChange={dispatchSetSpeechSynthesisVoiceURI}
       value={speechSynthesisVoiceURI || ''}
     >
-      {speechSynthesisNativeVoices.map(({ name, voiceURI }) => (
-        <Option key={voiceURI} text={name} value={voiceURI} />
+      {speechSynthesisNativeVoices.map(({ name, voiceURI }, index ) => (
+        <Option key={`${index}`} text={name} value={voiceURI} />
       ))}
     </Select>
   );

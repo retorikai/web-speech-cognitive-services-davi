@@ -1,13 +1,11 @@
 // Import necessary modules
 import { EventTarget, getEventAttributeValue, setEventAttributeValue } from 'event-target-shim/es5';
-import onErrorResumeNext from 'on-error-resume-next';
 import SpeechSDK from '../SpeechSDK';
 import { SpeakerAudioDestination, AudioConfig } from 'microsoft-cognitiveservices-speech-sdk';
-import fetchCustomVoices from './fetchCustomVoices';
-import fetchVoices from './fetchVoices';
 import patchOptions from '../patchOptions';
 import SpeechSynthesisEvent from './SpeechSynthesisEvent';
 import SpeechSynthesisUtterance from './SpeechSynthesisUtterance';
+import SpeechSynthesisVoice from './SpeechSynthesisVoice';
 
 export default options => {
   // Extract parameters from options using the patchOptions function
@@ -97,14 +95,20 @@ export default options => {
     }
 
     // Function to recreate the synthesizer
-    recreateSynthesizer() {
+    recreateSynthesizer(voice = undefined) {
       this.speakerAudioDestination = new SpeakerAudioDestination();
 
       this.audioConfig = audioContext
         ? SpeechSDK.AudioConfig.fromAudioContext(audioContext)
         : AudioConfig.fromSpeakerOutput(this.speakerAudioDestination);
 
-      this.synth = new SpeechSDK.SpeechSynthesizer(this.speechConfig, this.audioConfig);
+      if (voice) {
+        const tempSpeechConfig = this.speechConfig;
+        tempSpeechConfig.speechSynthesisVoiceName = voice;
+        this.synth = new SpeechSDK.SpeechSynthesizer(tempSpeechConfig, this.audioConfig);
+      } else {
+        this.synth = new SpeechSDK.SpeechSynthesizer(this.speechConfig, this.audioConfig);
+      }
     }
 
     // Cancel current synthesis
@@ -163,12 +167,18 @@ export default options => {
       // Add the utterance to the queue
       this.queue.push(utterance);
 
+      // Set the selected voice for the synthesizer
+      if (utterance.voice && (utterance.voice.voiceURI || utterance.voice._name)) {
+        this.recreateSynthesizer(utterance.voice.voiceURI || utterance.voice._name);
+      }
+
       // Function to process the queued utterances
       const processQueue = () => {
         if (this.queue.length && !this.speaking) {
           const currentUtterance = this.queue.shift(); // Get the next utterance from the queue
 
-          this.speakerAudioDestination.isClosed && this.recreateSynthesizer();
+          this.speakerAudioDestination.isClosed &&
+            this.recreateSynthesizer(currentUtterance.voice.voiceURI || currentUtterance.voice._name);
 
           // Set volume / mute status if present in the utterance parameters
           currentUtterance.volume && (this.speakerAudioDestination.volume = currentUtterance.volume);
@@ -177,13 +187,11 @@ export default options => {
           this.speakerAudioDestination.onAudioStart = () => {
             this.speaking = true;
             currentUtterance.onstart && currentUtterance.onstart();
-            console.log('audioStart');
           };
 
           this.speakerAudioDestination.onAudioEnd = () => {
             this.speaking = false;
             currentUtterance.onend && currentUtterance.onend();
-            console.log('audioEnd');
             processQueue(); // Process the next queued utterance after the current one has finished
           };
 
@@ -205,7 +213,6 @@ export default options => {
           };
 
           this.synth.visemeReceived = (synth, e) => {
-            console.log('Viseme : ', e);
             currentUtterance.onviseme && currentUtterance.onviseme(e);
           };
 
@@ -216,12 +223,13 @@ export default options => {
           const isSSML = /<speak[\s\S]*?>/iu.test(currentUtterance.text);
 
           return isSSML
-            ? new Promise(reject => {
+            ? new Promise((resolve, reject) => {
                 this.synth.speakSsmlAsync(
                   currentUtterance.text,
                   result => {
                     if (result) {
                       this.synth.close();
+                      resolve();
                     } else {
                       reject(new Error('No synthesis result.'));
                     }
@@ -231,12 +239,13 @@ export default options => {
                   }
                 );
               })
-            : new Promise(reject => {
+            : new Promise((resolve, reject) => {
                 this.synth.speakTextAsync(
                   currentUtterance.text,
                   result => {
                     if (result) {
                       this.synth.close();
+                      resolve();
                     } else {
                       reject(new Error('No synthesis result.'));
                     }
@@ -254,35 +263,18 @@ export default options => {
 
     // Asynchronous function that updates available voices
     async updateVoices() {
-      const { customVoiceHostname, region, speechSynthesisHostname, subscriptionKey } = await fetchCredentials();
+      const voicesResult = await this.synth.getVoicesAsync();
+      const voices = voicesResult.privVoices;
 
-      // const voices = await this.synth.getVoicesAsync();
-      // this.getVoices = () => voices;
+      console.log("Voices:", voices);
 
-      if (speechSynthesisDeploymentId) {
-        await onErrorResumeNext(async () => {
-          // Retrieve custom voices for a specific deployment (if provided)
-          const voices = await fetchCustomVoices({
-            customVoiceHostname,
-            deploymentId: speechSynthesisDeploymentId,
-            region,
-            speechSynthesisHostname,
-            subscriptionKey
-          });
-
-          this.getVoices = () => voices;
-        });
+      if (Array.isArray(voices)) {
+        const formattedVoices = voices.map(voice => new SpeechSynthesisVoice ( { gender: voice.gender, lang: voice.locale, voiceURI: voice.name } ));
+          
+        this.getVoices = () => formattedVoices;
+        // console.log("Formatted voices: ", formattedVoices);
       } else {
-        // Retrieve standard voices
-        await onErrorResumeNext(async () => {
-          const voices = await fetchVoices({
-            region,
-            speechSynthesisHostname,
-            subscriptionKey
-          });
-
-          this.getVoices = () => voices;
-        });
+        console.warn("Failed to retrieve voices. 'voices' is not an array.");
       }
 
       // Trigger the 'voiceschanged' event to notify the voices update
