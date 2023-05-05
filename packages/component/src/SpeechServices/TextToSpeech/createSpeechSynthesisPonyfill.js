@@ -167,18 +167,18 @@ export default options => {
       // Add the utterance to the queue
       this.queue.push(utterance);
 
-      // Set the selected voice for the synthesizer
-      if (utterance.voice && (utterance.voice.voiceURI || utterance.voice._name)) {
-        this.recreateSynthesizer(utterance.voice.voiceURI || utterance.voice._name);
-      }
-
       // Function to process the queued utterances
       const processQueue = () => {
         if (this.queue.length && !this.speaking) {
           const currentUtterance = this.queue.shift(); // Get the next utterance from the queue
+          const isSSML = /<speak[\s\S]*?>/iu.test(currentUtterance.text);
 
-          this.speakerAudioDestination.isClosed &&
-            this.recreateSynthesizer(currentUtterance.voice.voiceURI || currentUtterance.voice._name);
+          if (this.speakerAudioDestination.isClosed) {
+            this.recreateSynthesizer(isSSML ? undefined : currentUtterance.voice.voiceURI || currentUtterance.voice._name);
+          } else if (isSSML && utterance.voice && (utterance.voice.voiceURI || utterance.voice._name)) {
+            // Set the selected voice for the synthesizer if SSML is not used
+            this.recreateSynthesizer(utterance.voice.voiceURI || utterance.voice._name);
+          }
 
           // Set volume / mute status if present in the utterance parameters
           currentUtterance.volume && (this.speakerAudioDestination.volume = currentUtterance.volume);
@@ -219,8 +219,6 @@ export default options => {
           this.synth.bookmarkReached = (synth, e) => {
             currentUtterance.onmark && currentUtterance.onmark(e);
           };
-
-          const isSSML = /<speak[\s\S]*?>/iu.test(currentUtterance.text);
 
           return isSSML
             ? new Promise((resolve, reject) => {
@@ -269,10 +267,13 @@ export default options => {
       console.log("Voices:", voices);
 
       if (Array.isArray(voices)) {
-        const formattedVoices = voices.map(voice => new SpeechSynthesisVoice ( { gender: voice.gender, lang: voice.locale, voiceURI: voice.name } ));
+        const formattedVoices = voices.map(voice => new SpeechSynthesisVoice({
+          gender: voice.gender,
+          lang: voice.locale,
+          voiceURI: voice.name
+        }));
           
         this.getVoices = () => formattedVoices;
-        // console.log("Formatted voices: ", formattedVoices);
       } else {
         console.warn("Failed to retrieve voices. 'voices' is not an array.");
       }
