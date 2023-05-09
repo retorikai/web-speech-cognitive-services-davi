@@ -174,7 +174,9 @@ export default options => {
           const isSSML = /<speak[\s\S]*?>/iu.test(currentUtterance.text);
 
           if (this.speakerAudioDestination.isClosed) {
-            this.recreateSynthesizer(isSSML ? undefined : currentUtterance.voice.voiceURI || currentUtterance.voice._name);
+            this.recreateSynthesizer(
+              isSSML ? undefined : currentUtterance.voice.voiceURI || currentUtterance.voice._name
+            );
           } else if (isSSML && utterance.voice && (utterance.voice.voiceURI || utterance.voice._name)) {
             // Set the selected voice for the synthesizer if SSML is not used
             this.recreateSynthesizer(utterance.voice.voiceURI || utterance.voice._name);
@@ -264,15 +266,16 @@ export default options => {
       const voicesResult = await this.synth.getVoicesAsync();
       const voices = voicesResult.privVoices;
 
-      console.log("Voices:", voices);
-
       if (Array.isArray(voices)) {
-        const formattedVoices = voices.map(voice => new SpeechSynthesisVoice({
-          gender: voice.gender,
-          lang: voice.locale,
-          voiceURI: voice.name
-        }));
-          
+        const formattedVoices = voices.map(
+          voice =>
+            new SpeechSynthesisVoice({
+              gender: voice.gender,
+              lang: voice.locale,
+              voiceURI: voice.name
+            })
+        );
+
         this.getVoices = () => formattedVoices;
       } else {
         console.warn("Failed to retrieve voices. 'voices' is not an array.");
