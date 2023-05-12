@@ -173,7 +173,9 @@ export default options => {
           const currentUtterance = this.queue.shift(); // Get the next utterance from the queue
           const isSSML = /<speak[\s\S]*?>/iu.test(currentUtterance.text);
 
-          if (this.speakerAudioDestination.isClosed) {
+          if (currentUtterance.voice && (currentUtterance.voice.voiceURI || currentUtterance.voice._name)) {
+            this.recreateSynthesizer(currentUtterance.voice.voiceURI || currentUtterance.voice._name);
+          } else if (this.speakerAudioDestination.isClosed) {
             this.recreateSynthesizer(
               isSSML ? undefined : currentUtterance.voice.voiceURI || currentUtterance.voice._name
             );

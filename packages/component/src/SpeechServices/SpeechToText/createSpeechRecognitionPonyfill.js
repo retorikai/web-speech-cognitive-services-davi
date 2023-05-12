@@ -11,6 +11,7 @@ import createPromiseQueue from '../../Util/createPromiseQueue';
 import patchOptions from '../patchOptions';
 import SpeechGrammarList from './SpeechGrammarList';
 import SpeechSDK from '../SpeechSDK';
+import * as sdk from 'microsoft-cognitiveservices-speech-sdk/distrib/lib/microsoft.cognitiveservices.speech.sdk';
 
 // https://docs.microsoft.com/en-us/javascript/api/microsoft-cognitiveservices-speech-sdk/speechconfig?view=azure-node-latest#outputformat
 // {
@@ -663,7 +664,26 @@ export default options => {
     speechConfig.outputFormat = OutputFormat.Detailed;
     speechConfig.speechRecognitionLanguage = lang || 'en-US';
 
-    return new SpeechRecognizer(speechConfig, audioConfig);
+    function getExpressionsFromDatabase() {
+      // Log in to your database and retrieve the expressions here.
+      // This is just a fictitious example. You need to replace this implementation with the necessary code to interact with your specific database.
+      return ['Le Saint Pa', 'Chez A Tif'];
+    }
+
+    const recognizer = new SpeechRecognizer(speechConfig, audioConfig);
+
+    // Creation of the expression list and addition of the sentence
+    const phraseList = sdk.PhraseListGrammar.fromRecognizer(recognizer);
+
+    // Retrieving expressions from the database
+    const expressions = getExpressionsFromDatabase();
+
+    //  Adding each expression to the list of expressions
+    for (const expression of expressions) {
+      phraseList.addPhrase(expression);
+    }
+
+    return recognizer;
   };
 
   return createSpeechRecognitionPonyfillFromRecognizer({
