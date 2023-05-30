@@ -113,7 +113,7 @@ export default options => {
 
     // Cancel current synthesis
     cancel() {
-      if (this.synth.synthesisStarted && !this.synth.synthesisCompleted) {
+      if (this.synth.synthesisstarted && !this.synth.synthesiscompleted) {
         this.synth.close();
         this.queue = [];
       } else if (this.speaking) {
@@ -201,15 +201,15 @@ export default options => {
 
           // Events callbacks
           this.synth.synthesisStarted = () => {
-            currentUtterance.onSynthesisStart && currentUtterance.onSynthesisStart();
+            currentUtterance.onsynthesisstart && currentUtterance.onsynthesisstart();
           };
 
           this.synth.synthesisCompleted = () => {
-            currentUtterance.onSynthesisCompleted && currentUtterance.onSynthesisCompleted();
+            currentUtterance.onsynthesiscompleted && currentUtterance.onsynthesiscompleted();
           };
 
           this.synth.error = (synth, e) => {
-            currentUtterance.onSynthesisError && currentUtterance.onSynthesisError(e);
+            currentUtterance.onsynthesiserror && currentUtterance.onsynthesiserror(e);
           };
 
           this.synth.wordBoundary = (synth, e) => {
