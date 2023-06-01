@@ -1,6 +1,8 @@
 import { useDispatch, useSelector } from 'react-redux';
+// eslint-disable-next-line no-unused-vars
 import React, { useCallback } from 'react';
 
+// eslint-disable-next-line no-unused-vars
 import Select, { Option } from '../Bootstrap/Select';
 import setSpeechRecognitionLanguage from '../data/actions/setSpeechRecognitionLanguage';
 
@@ -15,7 +17,6 @@ const RegionSelector = () => {
   return (
     <Select onChange={dispatchSetSpeechRecognitionLanguage} value={speechRecognitionLanguage}>
       <Option text="English (US)" value="en-US" />
-      <Option text="French (FR)" value="fr-FR" />
       <Option text="Chinese (Cantonese)" value="zh-HK" />
       <Option text="Chinese (Putonghua)" value="zh-CN" />
       <Option text="Japanese" value="ja-JP" />
