@@ -217,7 +217,6 @@ export default options => {
           };
 
           this.synth.visemeReceived = (synth, e) => {
-            currentUtterance.viseme = e;
             currentUtterance.onviseme && currentUtterance.onviseme(e);
 
             // Define a boundary event equivalent of the viseme event
@@ -227,7 +226,7 @@ export default options => {
               privDuration: 0,
               privBoundaryType: 'Viseme'
             };
-            
+
             // Calls the onboundary function from the currentUtterance object with the visemeAsBoundary event, if it exists
             currentUtterance.onboundary && currentUtterance.onboundary(visemeAsBoundary);
             currentUtterance.onboundary && currentUtterance.onboundary(visemeAsBoundary);
