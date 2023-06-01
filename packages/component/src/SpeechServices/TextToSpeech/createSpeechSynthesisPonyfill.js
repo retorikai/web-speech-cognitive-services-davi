@@ -122,7 +122,7 @@ export default options => {
           this.speakerAudioDestination.onAudioEnd();
           this.speakerAudioDestination.close();
         } catch (e) {
-          console.log(e);
+          console.warn(e);
         }
       }
       this.queue = [];
@@ -217,7 +217,6 @@ export default options => {
           };
 
           this.synth.visemeReceived = (synth, e) => {
-            console.log("Viseme received: ", e);
             currentUtterance.viseme = e;
             currentUtterance.onviseme && currentUtterance.onviseme(e);
 
@@ -227,7 +226,6 @@ export default options => {
               privDuration: 0,
               privBoundaryType: 'Viseme'
             };
-            console.log("Viseme passed to boundary: ", visemeAsBoundary);
             currentUtterance.onboundary && currentUtterance.onboundary(visemeAsBoundary);
           };
 
