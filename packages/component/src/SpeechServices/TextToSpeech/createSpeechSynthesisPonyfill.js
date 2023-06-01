@@ -220,12 +220,16 @@ export default options => {
             currentUtterance.viseme = e;
             currentUtterance.onviseme && currentUtterance.onviseme(e);
 
+            // Define a boundary event equivalent of the viseme event
             const visemeAsBoundary = {
               privText: e.privVisemeId,
               privAudioOffset: e.privAudioOffset,
               privDuration: 0,
               privBoundaryType: 'Viseme'
             };
+            
+            // Calls the onboundary function from the currentUtterance object with the visemeAsBoundary event, if it exists
+            currentUtterance.onboundary && currentUtterance.onboundary(visemeAsBoundary);
             currentUtterance.onboundary && currentUtterance.onboundary(visemeAsBoundary);
           };
 
