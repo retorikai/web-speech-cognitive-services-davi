@@ -217,7 +217,18 @@ export default options => {
           };
 
           this.synth.visemeReceived = (synth, e) => {
+            console.log("Viseme received: ", e);
+            currentUtterance.viseme = e;
             currentUtterance.onviseme && currentUtterance.onviseme(e);
+
+            const visemeAsBoundary = {
+              privText: e.privVisemeId,
+              privAudioOffset: e.privAudioOffset,
+              privDuration: 0,
+              privBoundaryType: 'Viseme'
+            };
+            console.log("Viseme passed to boundary: ", visemeAsBoundary);
+            currentUtterance.onboundary && currentUtterance.onboundary(visemeAsBoundary);
           };
 
           this.synth.bookmarkReached = (synth, e) => {
