@@ -227,7 +227,7 @@ export default options => {
               privBoundaryType: 'Viseme'
             };
 
-            // Calls the onboundary function from the currentUtterance object with the visemeAsBoundary event, if it exists
+             // Calls the onboundary function from the currentUtterance object with the visemeAsBoundary event, if it exists
             currentUtterance.onboundary && currentUtterance.onboundary(visemeAsBoundary);
           };
 
