@@ -229,7 +229,6 @@ export default options => {
 
             // Calls the onboundary function from the currentUtterance object with the visemeAsBoundary event, if it exists
             currentUtterance.onboundary && currentUtterance.onboundary(visemeAsBoundary);
-            currentUtterance.onboundary && currentUtterance.onboundary(visemeAsBoundary);
           };
 
           this.synth.bookmarkReached = (synth, e) => {
