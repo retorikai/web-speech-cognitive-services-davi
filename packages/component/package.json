@@ -35,7 +35,6 @@
     "bump:prod": "npm install --legacy-peer-deps --save-exact $(cat package.json | jq -r '(.dependencies | keys) - (.skipBump | keys) | .[]' | awk '{print $1 \"@latest\"}')",
     "clean": "rimraf lib",
     "eslint": "eslint src/**/*.js",
-    "prepublishOnly": "npm run eslint && npm run build",
     "start": "npm run build -- --skip-initial-build --watch",
     "test": "jest"
   },
