@@ -34,6 +34,6 @@ export {
 const meta = document.createElement('meta');
 
 meta.setAttribute('name', 'web-speech-cognitive-services');
-meta.setAttribute('content', `version=${ process.env.npm_package_version }`);
+meta.setAttribute('content', `version=${process.env.npm_package_version}`);
 
 document.head.appendChild(meta);
