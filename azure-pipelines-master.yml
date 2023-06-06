@@ -25,7 +25,7 @@ steps:
     customCommand: 'run build'
 - task: ArchiveFiles@2
   inputs:
-    rootFolderOrFile: '$(Build.SourcesDirectory)/packages/component/lib'
+    rootFolderOrFile: '$(Build.SourcesDirectory)/packages/component'
     includeRootFolder: true
     archiveType: 'tar'
     archiveFile: '$(Build.ArtifactStagingDirectory)/data/package.tgz'
