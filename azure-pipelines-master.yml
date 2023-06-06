@@ -23,14 +23,14 @@ steps:
     command: 'custom'
     workingDir: '$(Build.SourcesDirectory)/packages/component'
     customCommand: 'run build'
-- task: ArchiveFiles@2
-  inputs:
-    rootFolderOrFile: '$(Build.SourcesDirectory)/packages/component'
-    includeRootFolder: true
-    archiveType: 'tar'
-    archiveFile: '$(Build.ArtifactStagingDirectory)/data/package.tgz'
-    replaceExistingArchive: true
+#- task: ArchiveFiles@2
+#  inputs:
+#    rootFolderOrFile: '$(Build.SourcesDirectory)/packages/component'
+#    includeRootFolder: true
+#    archiveType: 'tar'
+#    archiveFile: '$(Build.ArtifactStagingDirectory)/data/package.tgz'
+#    replaceExistingArchive: true
 - task: PublishBuildArtifacts@1
   displayName: 'publish'
   inputs:
-    pathToPublish: '$(Build.ArtifactStagingDirectory)/data'
+    pathToPublish: $(Build.SourcesDirectory)/packages/component'
