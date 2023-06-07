@@ -4,7 +4,6 @@ import SpeechSDK from '../SpeechSDK';
 import { SpeakerAudioDestination, AudioConfig } from 'microsoft-cognitiveservices-speech-sdk';
 import patchOptions from '../patchOptions';
 import SpeechSynthesisEvent from './SpeechSynthesisEvent';
-import CustomSpeechSynthesisEvent from './CustomSpeechSynthesisEvent';
 import SpeechSynthesisUtterance from './SpeechSynthesisUtterance';
 import SpeechSynthesisVoice from './SpeechSynthesisVoice';
 
@@ -191,12 +190,14 @@ export default options => {
           // SpeakerAudioDestination events callbacks
           this.speakerAudioDestination.onAudioStart = () => {
             this.speaking = true;
-            currentUtterance.onstart && currentUtterance.onstart();
+            const event = new SpeechSynthesisEvent('start');
+            currentUtterance.dispatchEvent(event);
           };
 
           this.speakerAudioDestination.onAudioEnd = () => {
             this.speaking = false;
-            currentUtterance.onend && currentUtterance.onend();
+            const event = new SpeechSynthesisEvent('end');
+            currentUtterance.dispatchEvent(event);
             processQueue(); // Process the next queued utterance after the current one has finished
           };
 
@@ -210,44 +211,38 @@ export default options => {
           };
 
           this.synth.error = (synth, e) => {
-            const event = new CustomSpeechSynthesisEvent({ type: 'error', name: e.privName });
-            currentUtterance.onsynthesiserror && currentUtterance.onsynthesiserror(event);
+            const event = new SpeechSynthesisEvent('error');
+            console.log(e);
+            currentUtterance.dispatchEvent(event);
           };
-
+          
           this.synth.wordBoundary = (synth, e) => {
-            const event = new CustomSpeechSynthesisEvent({
-              type: 'boundary',
-              name: e.privText,
-              elapsedTime: e.privAudioOffset,
-              duration: e.privDuration
-            });
-            currentUtterance.onboundary && currentUtterance.onboundary(event);
+            const event = new SpeechSynthesisEvent('boundary');
+            event.boundaryType = e.privBoundaryType;
+            event.name = e.privText;
+            event.elapsedTime = e.privAudioOffset;
+            event.duration = e.privDuration;
+
+            currentUtterance.dispatchEvent(event);
           };
 
           this.synth.visemeReceived = (synth, e) => {
-            const event = new CustomSpeechSynthesisEvent({
-              type: 'viseme',
-              name: e.privVisemeId,
-              elapsedTime: e.privAudioOffset,
-              duration: e.privDuration
-            });
-            currentUtterance.onviseme && currentUtterance.onviseme(event);
+            const event = new SpeechSynthesisEvent('boundary');
+            event.boundaryType = 'Viseme';
+            event.name = e.privVisemeId;
+            event.elapsedTime = e.privAudioOffset;
+            event.duration = 0;
 
-            // Define a boundary event equivalent of the viseme event
-            // const visemeAsBoundary = {
-            //   privText: e.privVisemeId,
-            //   privAudioOffset: e.privAudioOffset,
-            //   privDuration: 0,
-            //   privBoundaryType: 'Viseme'
-            // };
+            currentUtterance.dispatchEvent(event);
+            };
 
-             // Calls the onboundary function from the currentUtterance object with the visemeAsBoundary event, if it exists
-            currentUtterance.onboundary && currentUtterance.onboundary(event);
-          };
-
+          // Calls the onboundary function from the currentUtterance object with the visemeAsBoundary event, if it exists
           this.synth.bookmarkReached = (synth, e) => {
-            currentUtterance.onmark && currentUtterance.onmark(e);
+            const event = new SpeechSynthesisEvent('mark');
+            console.log(e);
+            currentUtterance.dispatchEvent(event);
           };
+
 
           return isSSML
             ? new Promise((resolve, reject) => {
