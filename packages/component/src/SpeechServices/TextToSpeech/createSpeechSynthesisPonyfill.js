@@ -4,6 +4,7 @@ import SpeechSDK from '../SpeechSDK';
 import { SpeakerAudioDestination, AudioConfig } from 'microsoft-cognitiveservices-speech-sdk';
 import patchOptions from '../patchOptions';
 import SpeechSynthesisEvent from './SpeechSynthesisEvent';
+import CustomSpeechSynthesisEvent from './CustomSpeechSynthesisEvent';
 import SpeechSynthesisUtterance from './SpeechSynthesisUtterance';
 import SpeechSynthesisVoice from './SpeechSynthesisVoice';
 
@@ -209,26 +210,39 @@ export default options => {
           };
 
           this.synth.error = (synth, e) => {
-            currentUtterance.onsynthesiserror && currentUtterance.onsynthesiserror(e);
+            const event = new CustomSpeechSynthesisEvent({ type: 'error', name: e.privName });
+            currentUtterance.onsynthesiserror && currentUtterance.onsynthesiserror(event);
           };
 
           this.synth.wordBoundary = (synth, e) => {
-            currentUtterance.onboundary && currentUtterance.onboundary(e);
+            const event = new CustomSpeechSynthesisEvent({
+              type: 'boundary',
+              name: e.privText,
+              elapsedTime: e.privAudioOffset,
+              duration: e.privDuration
+            });
+            currentUtterance.onboundary && currentUtterance.onboundary(event);
           };
 
           this.synth.visemeReceived = (synth, e) => {
-            currentUtterance.onviseme && currentUtterance.onviseme(e);
+            const event = new CustomSpeechSynthesisEvent({
+              type: 'viseme',
+              name: e.privVisemeId,
+              elapsedTime: e.privAudioOffset,
+              duration: e.privDuration
+            });
+            currentUtterance.onviseme && currentUtterance.onviseme(event);
 
             // Define a boundary event equivalent of the viseme event
-            const visemeAsBoundary = {
-              privText: e.privVisemeId,
-              privAudioOffset: e.privAudioOffset,
-              privDuration: 0,
-              privBoundaryType: 'Viseme'
-            };
+            // const visemeAsBoundary = {
+            //   privText: e.privVisemeId,
+            //   privAudioOffset: e.privAudioOffset,
+            //   privDuration: 0,
+            //   privBoundaryType: 'Viseme'
+            // };
 
              // Calls the onboundary function from the currentUtterance object with the visemeAsBoundary event, if it exists
-            currentUtterance.onboundary && currentUtterance.onboundary(visemeAsBoundary);
+            currentUtterance.onboundary && currentUtterance.onboundary(event);
           };
 
           this.synth.bookmarkReached = (synth, e) => {
@@ -295,7 +309,7 @@ export default options => {
       }
 
       // Trigger the 'voiceschanged' event to notify the voices update
-      this.dispatchEvent(new SpeechSynthesisEvent('voiceschanged'));
+      this.dispatchEvent(new Event('voiceschanged'));
     }
   }
 
