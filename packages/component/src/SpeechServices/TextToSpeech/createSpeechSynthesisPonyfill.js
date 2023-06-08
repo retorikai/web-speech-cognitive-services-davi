@@ -236,10 +236,10 @@ export default options => {
             currentUtterance.dispatchEvent(event);
             };
 
-          // Calls the onboundary function from the currentUtterance object with the visemeAsBoundary event, if it exists
           this.synth.bookmarkReached = (synth, e) => {
             const event = new SpeechSynthesisEvent('mark');
-            console.log(e);
+            event.name = e.privText;
+            event.elapsedTime = e.privAudioOffset;
             currentUtterance.dispatchEvent(event);
           };
 
