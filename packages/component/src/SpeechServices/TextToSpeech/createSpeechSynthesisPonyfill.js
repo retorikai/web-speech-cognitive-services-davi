@@ -212,7 +212,7 @@ export default options => {
 
           this.synth.error = (synth, e) => {
             const event = new SpeechSynthesisEvent('error');
-            console.log(e);
+            event.errorDetails = e;
             currentUtterance.dispatchEvent(event);
           };
           
