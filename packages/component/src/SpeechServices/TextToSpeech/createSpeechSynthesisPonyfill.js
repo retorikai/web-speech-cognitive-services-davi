@@ -227,6 +227,7 @@ export default options => {
           };
 
           this.synth.visemeReceived = (synth, e) => {
+            // Create a new SpeechSynthesisEvent of type 'boundary' that is returned as a boundary.
             const event = new SpeechSynthesisEvent('boundary');
             event.boundaryType = 'Viseme';
             event.name = e.privVisemeId;
@@ -234,7 +235,16 @@ export default options => {
             event.duration = 0;
 
             currentUtterance.dispatchEvent(event);
-            };
+
+            // Create a new SpeechSynthesisEvent of type 'viseme' that is sent to a custom 'onviseme' method
+            const event2 = new SpeechSynthesisEvent('viseme');
+            event2.boundaryType = 'Viseme';
+            event2.name = e.privVisemeId;
+            event2.elapsedTime = e.privAudioOffset;
+            event2.duration = 0;
+
+            currentUtterance.dispatchEvent(event2);
+          };
 
           this.synth.bookmarkReached = (synth, e) => {
             const event = new SpeechSynthesisEvent('mark');
