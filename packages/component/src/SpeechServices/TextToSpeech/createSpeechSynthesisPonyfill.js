@@ -176,12 +176,7 @@ export default options => {
           if (currentUtterance.voice && (currentUtterance.voice.voiceURI || currentUtterance.voice._name)) {
             this.recreateSynthesizer(currentUtterance.voice.voiceURI || currentUtterance.voice._name);
           } else if (this.speakerAudioDestination.isClosed) {
-            this.recreateSynthesizer(
-              isSSML ? undefined : currentUtterance.voice.voiceURI || currentUtterance.voice._name
-            );
-          } else if (isSSML && utterance.voice && (utterance.voice.voiceURI || utterance.voice._name)) {
-            // Set the selected voice for the synthesizer if SSML is not used
-            this.recreateSynthesizer(utterance.voice.voiceURI || utterance.voice._name);
+            this.recreateSynthesizer();
           }
 
           // Set volume / mute status if present in the utterance parameters
@@ -212,7 +207,7 @@ export default options => {
 
           this.synth.error = (synth, e) => {
             const event = new SpeechSynthesisEvent('error');
-            console.log(e);
+            event.errorDetails = e;
             currentUtterance.dispatchEvent(event);
           };
           
