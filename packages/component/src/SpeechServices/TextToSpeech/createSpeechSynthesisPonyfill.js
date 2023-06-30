@@ -210,7 +210,7 @@ export default options => {
             event.errorDetails = e;
             currentUtterance.dispatchEvent(event);
           };
-          
+
           this.synth.wordBoundary = (synth, e) => {
             const event = new SpeechSynthesisEvent('boundary');
             event.boundaryType = e.privBoundaryType;
@@ -247,7 +247,6 @@ export default options => {
             event.elapsedTime = e.privAudioOffset;
             currentUtterance.dispatchEvent(event);
           };
-
 
           return isSSML
             ? new Promise((resolve, reject) => {
@@ -294,14 +293,14 @@ export default options => {
       const voices = voicesResult.privVoices;
 
       if (Array.isArray(voices)) {
-        const formattedVoices = voices.map(
-          voice =>
-            new SpeechSynthesisVoice({
-              gender: voice.gender,
-              lang: voice.locale,
-              voiceURI: voice.name
-            })
-        );
+        const formattedVoices = voices.map(voice => 
+          new SpeechSynthesisVoice({
+            // eslint-disable-next-line no-magic-numbers
+            gender: voice.gender === 1 ? 'Female' : voice.gender === 2 ? 'Male' : 'Undefined',
+            lang: voice.locale,
+            voiceURI: voice.name
+          })
+        )
 
         this.getVoices = () => formattedVoices;
       } else {
