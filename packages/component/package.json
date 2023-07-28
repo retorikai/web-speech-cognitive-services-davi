@@ -1,7 +1,10 @@
 {
-  "name": "@davi/web-speech-cognitive-services",
-  "version": "0.0.2",
+  "name": "@davi-ai/web-speech-cognitive-services-davi",
+  "version": "1.0.0",
   "description": "Polyfill Web Speech API with Cognitive Services Speech-to-Text service",
+  "author": "DAVI",
+  "license": "MIT",
+  "repository": "none",
   "keywords": [
     "cognitive services",
     "dictation",
@@ -38,16 +41,6 @@
     "start": "npm run build -- --skip-initial-build --watch",
     "test": "jest"
   },
-  "author": "William Wong <compulim@hotmail.com> (http://compulim.info/)",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/compulim/web-speech-cognitive-services.git"
-  },
-  "bugs": {
-    "url": "https://github.com/compulim/web-speech-cognitive-services/issues"
-  },
-  "homepage": "https://github.com/compulim/web-speech-cognitive-services#readme",
   "skipBump": {
     "node-fetch": "node-fetch@3 does not support CommonJS"
   },
