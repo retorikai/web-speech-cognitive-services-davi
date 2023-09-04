@@ -95,12 +95,17 @@ export default options => {
     }
 
     // Function to recreate the synthesizer
-    createSynthesizer(voice) {
-      this.speakerAudioDestination = new SpeakerAudioDestination();
+    createSynthesizer(voice, stream) {
+      if (stream) {
+        this.audioConfig = AudioConfig.fromStreamOutput(stream)
+      } else {
+        this.speakerAudioDestination = new SpeakerAudioDestination();
 
-      this.audioConfig = audioContext
-        ? SpeechSDK.AudioConfig.fromAudioContext(audioContext)
-        : AudioConfig.fromSpeakerOutput(this.speakerAudioDestination);
+        this.audioConfig = audioContext
+          ? SpeechSDK.AudioConfig.fromAudioContext(audioContext)
+          : AudioConfig.fromSpeakerOutput(this.speakerAudioDestination);
+      }
+      
 
       if (voice) {
         const tempSpeechConfig = this.speechConfig;
@@ -220,7 +225,7 @@ export default options => {
      * Launch synthesis and play sound with the speech synthesizer
      * @param {SpeechSynthesisUtterance} utterance 
      */
-    speak(utterance) {
+    speak(utterance, stream) {
       // Test utterance
       if (!(utterance instanceof SpeechSynthesisUtterance)) {
         throw new Error('invalid utterance');
@@ -236,9 +241,9 @@ export default options => {
           const isSSML = /<speak[\s\S]*?>/iu.test(currentUtterance.text);
 
           if (currentUtterance.voice && (currentUtterance.voice.voiceURI || currentUtterance.voice._name)) {
-            this.createSynthesizer(currentUtterance.voice.voiceURI || currentUtterance.voice._name);
+            this.createSynthesizer(currentUtterance.voice.voiceURI || currentUtterance.voice._name, stream);
           } else {
-            this.createSynthesizer(undefined);
+            this.createSynthesizer(undefined, stream);
           }
 
           // Set volume / mute status if present in the utterance parameters
