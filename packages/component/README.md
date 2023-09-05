@@ -63,6 +63,41 @@ You can now listen to the following events by attaching callbacks to the utteran
   - `utterance.onboundary = (event): void => { console.log('Boundary data : ', event.boundaryType, event.name, event.elapsedTime, event.duration )}`
 
 ### Improvements    
+
 Using the SpeechSynthetizer class leads to several improvements in the functionalities :
 - the `start` event is now linked to the `oncanplaythrough` event of the AudioElement used by the AudioContext. This allows a better synchronisation at the beginning of the speech.
 - you can call `mute()` and `unmute()` on the ponyfill.speechSynthesis object anytime
+
+### Other Features  
+
+#### Retrieve synthesized data
+
+You can retrieve all data synthesized in an ArrayBuffer once the synthesis is finished, by using `ponyfill.speechSynthesis.synthesizeAndGetArrayData(utterance: SpeechSynthesisUtterance, callback: (data: ArrayBuffer) => void)`
+The `data` will contain the whole synthesis and can then be used (for example you can create a Blob from these data and play it).
+
+Example
+```js
+  const callback = (data: ArrayBuffer): void => {
+    const blob = new Blob([data], { type: 'audio/mp3' })
+    const url = URL.createObjectURL(blob)
+
+    const audioElement = document.getElementById('myaudio')
+    audioElement.src = url
+    audioElement.play()
+  }
+
+  ponyfill.speechSynthesis.synthesizeAndGetArrayData(utterance, callback)
+```
+
+### Use a stream to get data
+
+You can pass a stream as secondary argument to the `speak` method, to prevent the synthesizer from playing the synthesized data and retrieve them in the stream on your side.
+The stream must be a `AudioOutputStream.createPullStream()` object, `AudioOutputStream` coming from the `microsoft-cognitiveservices-speech-sdk` package.
+
+Example
+```js
+  import { AudioOutputStream } from 'microsoft-cognitiveservices-speech-sdk'
+
+  let stream = AudioOutputStream.createPullStream()
+  ponyfill.speechSynthesis.speak(utterance, stream)
+```
