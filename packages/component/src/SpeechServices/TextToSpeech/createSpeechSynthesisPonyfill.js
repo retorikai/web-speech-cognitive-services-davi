@@ -95,12 +95,17 @@ export default options => {
     }
 
     // Function to recreate the synthesizer
-    recreateSynthesizer(voice = undefined) {
-      this.speakerAudioDestination = new SpeakerAudioDestination();
+    createSynthesizer(voice, stream) {
+      if (stream) {
+        this.audioConfig = AudioConfig.fromStreamOutput(stream)
+      } else {
+        this.speakerAudioDestination = new SpeakerAudioDestination();
 
-      this.audioConfig = audioContext
-        ? SpeechSDK.AudioConfig.fromAudioContext(audioContext)
-        : AudioConfig.fromSpeakerOutput(this.speakerAudioDestination);
+        this.audioConfig = audioContext
+          ? SpeechSDK.AudioConfig.fromAudioContext(audioContext)
+          : AudioConfig.fromSpeakerOutput(this.speakerAudioDestination);
+      }
+      
 
       if (voice) {
         const tempSpeechConfig = this.speechConfig;
@@ -158,7 +163,69 @@ export default options => {
       setEventAttributeValue(this, 'voiceschanged', value);
     }
 
-    speak(utterance) {
+    /**
+     * Add events listeners to the events received by the synthesizer if callbakcs are given in the utterance
+     * @param {SpeechSynthesisUtterance} utterance
+     */
+    linkEventsCallbacks(utterance) {
+      // Events callbacks
+      this.synth.synthesisStarted = () => {
+        utterance.onsynthesisstart && utterance.onsynthesisstart();
+      };
+
+      this.synth.synthesisCompleted = () => {
+        utterance.onsynthesiscompleted && utterance.onsynthesiscompleted();
+      };
+
+      this.synth.error = (synth, e) => {
+        const event = new SpeechSynthesisEvent('error');
+        event.errorDetails = e;
+        utterance.dispatchEvent(event);
+      };
+
+      this.synth.wordBoundary = (synth, e) => {
+        const event = new SpeechSynthesisEvent('boundary');
+        event.boundaryType = e.privBoundaryType;
+        event.name = e.privText;
+        event.elapsedTime = e.privAudioOffset;
+        event.duration = e.privDuration;
+
+        utterance.dispatchEvent(event);
+      };
+
+      this.synth.visemeReceived = (synth, e) => {
+        // Create a new SpeechSynthesisEvent of type 'boundary' that is returned as a boundary.
+        const event = new SpeechSynthesisEvent('boundary');
+        event.boundaryType = 'Viseme';
+        event.name = e.privVisemeId;
+        event.elapsedTime = e.privAudioOffset;
+        event.duration = 0;
+
+        utterance.dispatchEvent(event);
+
+        // Create a new SpeechSynthesisEvent of type 'viseme' that is sent to a custom 'onviseme' method
+        const event2 = new SpeechSynthesisEvent('viseme');
+        event2.boundaryType = 'Viseme';
+        event2.name = e.privVisemeId;
+        event2.elapsedTime = e.privAudioOffset;
+        event2.duration = 0;
+
+        utterance.dispatchEvent(event2);
+      };
+
+      this.synth.bookmarkReached = (synth, e) => {
+        const event = new SpeechSynthesisEvent('mark');
+        event.name = e.privText;
+        event.elapsedTime = e.privAudioOffset;
+        utterance.dispatchEvent(event);
+      };
+    }
+
+    /**
+     * Launch synthesis and play sound with the speech synthesizer
+     * @param {SpeechSynthesisUtterance} utterance 
+     */
+    speak(utterance, stream) {
       // Test utterance
       if (!(utterance instanceof SpeechSynthesisUtterance)) {
         throw new Error('invalid utterance');
@@ -174,9 +241,9 @@ export default options => {
           const isSSML = /<speak[\s\S]*?>/iu.test(currentUtterance.text);
 
           if (currentUtterance.voice && (currentUtterance.voice.voiceURI || currentUtterance.voice._name)) {
-            this.recreateSynthesizer(currentUtterance.voice.voiceURI || currentUtterance.voice._name);
-          } else if (this.speakerAudioDestination.isClosed) {
-            this.recreateSynthesizer();
+            this.createSynthesizer(currentUtterance.voice.voiceURI || currentUtterance.voice._name, stream);
+          } else {
+            this.createSynthesizer(undefined, stream);
           }
 
           // Set volume / mute status if present in the utterance parameters
@@ -196,57 +263,7 @@ export default options => {
             processQueue(); // Process the next queued utterance after the current one has finished
           };
 
-          // Events callbacks
-          this.synth.synthesisStarted = () => {
-            currentUtterance.onsynthesisstart && currentUtterance.onsynthesisstart();
-          };
-
-          this.synth.synthesisCompleted = () => {
-            currentUtterance.onsynthesiscompleted && currentUtterance.onsynthesiscompleted();
-          };
-
-          this.synth.error = (synth, e) => {
-            const event = new SpeechSynthesisEvent('error');
-            event.errorDetails = e;
-            currentUtterance.dispatchEvent(event);
-          };
-
-          this.synth.wordBoundary = (synth, e) => {
-            const event = new SpeechSynthesisEvent('boundary');
-            event.boundaryType = e.privBoundaryType;
-            event.name = e.privText;
-            event.elapsedTime = e.privAudioOffset;
-            event.duration = e.privDuration;
-
-            currentUtterance.dispatchEvent(event);
-          };
-
-          this.synth.visemeReceived = (synth, e) => {
-            // Create a new SpeechSynthesisEvent of type 'boundary' that is returned as a boundary.
-            const event = new SpeechSynthesisEvent('boundary');
-            event.boundaryType = 'Viseme';
-            event.name = e.privVisemeId;
-            event.elapsedTime = e.privAudioOffset;
-            event.duration = 0;
-
-            currentUtterance.dispatchEvent(event);
-
-            // Create a new SpeechSynthesisEvent of type 'viseme' that is sent to a custom 'onviseme' method
-            const event2 = new SpeechSynthesisEvent('viseme');
-            event2.boundaryType = 'Viseme';
-            event2.name = e.privVisemeId;
-            event2.elapsedTime = e.privAudioOffset;
-            event2.duration = 0;
-
-            currentUtterance.dispatchEvent(event2);
-          };
-
-          this.synth.bookmarkReached = (synth, e) => {
-            const event = new SpeechSynthesisEvent('mark');
-            event.name = e.privText;
-            event.elapsedTime = e.privAudioOffset;
-            currentUtterance.dispatchEvent(event);
-          };
+          this.linkEventsCallbacks(currentUtterance)
 
           return isSSML
             ? new Promise((resolve, reject) => {
@@ -285,6 +302,42 @@ export default options => {
       };
       processQueue(); // Start processing the queue
       this.canceled = false; // Reset canceled state after processing the queue
+    }
+
+    /**
+     * Launch synthesis without sound being played and call callback function with an ArrayBuffer after synthesis finished, containing the sound data
+     * @param {SpeechSynthesisUtterance} utterance 
+     * @param {Function} callback 
+     */
+    synthesizeAndGetArrayData(utterance, callback) {
+      // Test utterance
+      if (!(utterance instanceof SpeechSynthesisUtterance)) {
+        throw new Error('invalid utterance');
+      }
+
+      this.synth = new SpeechSDK.SpeechSynthesizer(this.speechConfig, null);
+      this.linkEventsCallbacks(utterance)
+
+      try {
+        this.synth.speakSsmlAsync(
+          utterance.text,
+          result => {
+            if (result && result.audioData) {
+              callback(result.audioData);
+              this.synth.close();
+            }
+            else {
+              callback(null);
+            }
+          },
+          error => {
+            console.error(error)
+            callback(null);
+          });
+      }
+      catch (error) {
+          console.error(error);
+      }
     }
 
     // Asynchronous function that updates available voices
