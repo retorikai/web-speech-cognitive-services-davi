@@ -315,25 +315,50 @@ export default options => {
         throw new Error('invalid utterance');
       }
 
-      this.synth = new SpeechSDK.SpeechSynthesizer(this.speechConfig, null);
+      const isSSML = /<speak[\s\S]*?>/iu.test(utterance.text);
+      if (utterance.voice && (utterance.voice.voiceURI || utterance.voice._name)) {
+        const tempSpeechConfig = this.speechConfig;
+        tempSpeechConfig.speechSynthesisVoiceName = utterance.voice.voiceURI || utterance.voice._name;
+        this.synth = new SpeechSDK.SpeechSynthesizer(tempSpeechConfig, null);
+      } else {
+        this.synth = new SpeechSDK.SpeechSynthesizer(this.speechConfig, null);
+      }
+      
       this.linkEventsCallbacks(utterance)
 
       try {
-        this.synth.speakSsmlAsync(
-          utterance.text,
-          result => {
-            if (result && result.audioData) {
-              callback(result.audioData);
-              this.synth.close();
-            }
-            else {
+        isSSML ?
+          this.synth.speakSsmlAsync(
+            utterance.text,
+            result => {
+              if (result && result.audioData) {
+                callback(result.audioData);
+                this.synth.close();
+              }
+              else {
+                callback(null);
+              }
+            },
+            error => {
+              console.error(error)
               callback(null);
-            }
-          },
-          error => {
-            console.error(error)
-            callback(null);
-          });
+            })
+          :
+          this.synth.speakTextAsync(
+            utterance.text,
+            result => {
+              if (result && result.audioData) {
+                callback(result.audioData);
+                this.synth.close();
+              }
+              else {
+                callback(null);
+              }
+            },
+            error => {
+              console.error(error)
+              callback(null);
+            });
       }
       catch (error) {
           console.error(error);
