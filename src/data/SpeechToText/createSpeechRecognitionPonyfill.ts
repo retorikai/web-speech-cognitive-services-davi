@@ -237,7 +237,6 @@ export function createSpeechRecognitionPonyfillFromRecognizer({
     stop: Function | undefined = undefined;
 
     processSendEvent = (type: string, data?: any): void => {
-      console.log('Event : type = ', type)
       switch (type) {
         case 'start':
           this.onstart && this.onstart();

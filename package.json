@@ -26,8 +26,6 @@
   },
   "dependencies": {
     "base64-arraybuffer": "1.0.2",
-    "event-as-promise": "1.0.5",
-    "event-target-shim": "6.0.2",
     "memoize-one": "6.0.0",
     "microsoft-cognitiveservices-speech-sdk": "^1.32.0",
     "on-error-resume-next": "1.1.0",
