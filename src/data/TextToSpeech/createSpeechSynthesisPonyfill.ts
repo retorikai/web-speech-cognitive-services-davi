@@ -169,7 +169,7 @@ class SpeechSynthesis {
       this.synth.wordBoundary = (synth, e) => {
         !synth && console.warn('No synthesizer')
         const data = {
-          boundaryType: 'Boundary',
+          boundaryType: e.boundaryType,
           name: e.text,
           elapsedTime: e.audioOffset,
           duration: e.duration
