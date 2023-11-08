@@ -1,0 +1,40 @@
+{
+  "compilerOptions": {
+    "outDir": "dist",
+    "module": "esnext",
+    "lib": ["dom", "esnext", "ES2015", "dom.iterable"],
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "jsx": "react",
+    "sourceMap": true,
+    "declaration": true,
+    "experimentalDecorators": true,
+    "esModuleInterop": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noImplicitAny": false,
+    "strictNullChecks": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2015",
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "noEmit": true
+  },
+  "include": [
+    "src/**/*",
+    "./jest-setup.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "example",
+    "**/*.test.tsx",
+    "**/*.test.ts",
+    "**/__mocks__/**/*"
+  ]
+}
