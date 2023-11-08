@@ -19,7 +19,7 @@ steps:
     command: 'install'
 - task: Npm@1
   inputs:
-    command: 'custom'
+    command: custom
     customCommand: 'run build'
 - task: ArchiveFiles@2
   inputs:
