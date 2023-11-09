@@ -1,6 +1,6 @@
 {
   "name": "@davi-ai/web-speech-cognitive-services-davi",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Polyfill Web Speech API with Cognitive Services Speech-to-Text service",
   "author": "DAVI",
   "license": "MIT",
@@ -8,6 +8,9 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "source": "src/index.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "start": "parcel watch",
     "build": "parcel build"

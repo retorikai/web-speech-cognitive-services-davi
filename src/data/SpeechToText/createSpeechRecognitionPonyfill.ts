@@ -16,6 +16,7 @@ import type {
 } from '../../models/speechtypes';
 import type { SpeechRecognitionProps } from '../../models/ponyfillTypes';
 import type { PatchOptions } from '../../models/credentialTypes';
+import { DynamicGrammarBuilder } from 'microsoft-cognitiveservices-speech-sdk/distrib/lib/src/common.speech/DynamicGrammarBuilder';
 
 interface AudioConfigImpl extends SDK.AudioConfig {
   attach: Function;
@@ -139,7 +140,7 @@ class SpeechRecognition {
   started = false;
 
   private _autoStart = false;
-  private _passive;
+  private _passive = false;
   private _wakeWords: Array<string>;
   private _continuous = false;
   private _interimResults = false;
@@ -190,20 +191,28 @@ class SpeechRecognition {
     }
   }
 
-  get continuous() {
-    return this._continuous;
-  }
-
-  set continuous(value) {
-    this._continuous = value;
-  }
-
   get passive() {
     return this._passive;
   }
 
   set passive(value) {
     this._passive = value;
+  }
+  
+  get wakeWords() {
+    return this._wakeWords;
+  }
+
+  set wakeWords(value) {
+    this._wakeWords = value;
+  }
+
+  get continuous() {
+    return this._continuous;
+  }
+
+  set continuous(value) {
+    this._continuous = value;
   }
 
   get grammars() {
@@ -330,6 +339,21 @@ class SpeechRecognition {
     if (this.audioConfig && this.speechConfig) {
       this.speechConfig.speechRecognitionLanguage = this._lang;
       this.recognizer = new SDK.SpeechRecognizer(this.speechConfig, this.audioConfig);
+
+      // Add grammars
+      const { dynamicGrammar } = this.recognizer.internalData as any;
+      this.referenceGrammars &&
+        this.referenceGrammars.length &&
+        (dynamicGrammar as DynamicGrammarBuilder).addReferenceGrammar(this.referenceGrammars);
+      
+      // Add phrases
+      const { phrases } = this._grammars;
+      if (phrases && phrases.length) {
+        const phraseList = SDK.PhraseListGrammar.fromRecognizer(this.recognizer);
+        phrases.forEach((phrase) => {
+          phraseList.addPhrase(phrase);
+        })
+      };
     } else {
       this.recognizer = null;
     }
@@ -347,6 +371,21 @@ class SpeechRecognition {
       this._continuous && this.start();
     } else {
       this.recognizer = null;
+    }
+  };
+
+  /**
+   * In continuous mode, toggle from passive to active mode by stopping current recognition and starting a new one to prevent
+   * receiving results from a current passive speech recognition.
+   * If you don't care about having existing results in active recognition, just set recognition's 'passive' variable to 'false' instead
+   * of using this method.
+   */
+  toggleContinuousPassiveToActive = async (): Promise<void> => {
+    if (this._continuous && this.recognizer && this.audioConfig && this.speechConfig) {
+      // Stop current recognition and start a new one
+      await cognitiveServicesAsyncToPromise(this.recognizer.stopContinuousRecognitionAsync.bind(this.recognizer))();
+      this._passive = false;
+      this.start();
     }
   };
 
@@ -473,18 +512,7 @@ class SpeechRecognition {
             // Update: "speechEndDetected" is fired for DLSpeech.listenOnceAsync()
             queue.push({ speechEndDetected: { sessionId } });
           };
-
-          const { phrases } = this.grammars;
-
-          // HACK: We are using the internal of SpeechRecognizer because they did not expose it
-          // HACK2: internalData returns this.privReco but as object type
-          const { dynamicGrammar } = this.recognizer.internalData as any;
-
-          this.referenceGrammars &&
-            this.referenceGrammars.length &&
-            dynamicGrammar.addReferenceGrammar(this.referenceGrammars);
-          phrases && phrases.length && dynamicGrammar.addPhrase(phrases);
-
+          
           await cognitiveServicesAsyncToPromise(
             this.recognizer.startContinuousRecognitionAsync.bind(this.recognizer)
           )();
