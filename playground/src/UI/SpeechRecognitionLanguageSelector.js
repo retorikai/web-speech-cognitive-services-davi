@@ -16,9 +16,10 @@ const RegionSelector = () => {
 
   return (
     <Select onChange={dispatchSetSpeechRecognitionLanguage} value={speechRecognitionLanguage}>
-      <Option text="English (US)" value="en-US" />
       <Option text="Chinese (Cantonese)" value="zh-HK" />
       <Option text="Chinese (Putonghua)" value="zh-CN" />
+      <Option text="English (US)" value="en-US" />
+      <Option text="French (France)" value="fr-FR" />
       <Option text="Japanese" value="ja-JP" />
       <Option text="Korean" value="ko-KR" />
     </Select>

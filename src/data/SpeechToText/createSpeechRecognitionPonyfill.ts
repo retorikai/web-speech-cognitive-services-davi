@@ -143,7 +143,7 @@ class SpeechRecognition {
   private _passive = false;
   private _wakeWords: Array<string>;
   private _continuous = false;
-  private _interimResults = false;
+  private _interimResults = true;
   private _lang: string;
   private _grammars: SpeechGrammarList = new SpeechGrammarList();
   private _maxAlternatives = 1;
@@ -153,8 +153,8 @@ class SpeechRecognition {
     this._autoStart = !!data?.autoStart;
     this._passive = !!data?.passive;
     this._wakeWords = data?.wakeWords || [];
-    this._continuous = data?.continuous || false;
-    data?.interimResults && (this._interimResults = true);
+    this._continuous = !!data?.continuous;
+    this._interimResults = !(data?.interimResults === false);
     this._lang = data?.lang
       ? data.lang
       : typeof window !== 'undefined'
@@ -164,7 +164,7 @@ class SpeechRecognition {
     this._debug = !!data?.debug || false;
 
     const {
-      audioConfig = SDK.AudioConfig.fromDefaultMicrophoneInput(),
+      audioConfig = null,
       // We set telemetry to true to honor the default telemetry settings of Speech SDK
       // https://github.com/Microsoft/cognitive-services-speech-sdk-js#data--telemetry
       enableTelemetry = true,
@@ -185,9 +185,13 @@ class SpeechRecognition {
         'web-speech-cognitive-services: This browser does not support WebRTC and it will not work with Cognitive Services Speech Services.'
       );
     } else {
-      this.audioConfig = audioConfig;
+      try {
+        this.audioConfig = audioConfig || SDK.AudioConfig.fromDefaultMicrophoneInput();
 
-      this.initRecognizer(fetchCredentials, speechRecognitionEndpointId);
+        this.initRecognizer(fetchCredentials, speechRecognitionEndpointId);
+      } catch (e) {
+        console.warn(e)
+      }
     }
   }
 
@@ -198,7 +202,7 @@ class SpeechRecognition {
   set passive(value) {
     this._passive = value;
   }
-  
+
   get wakeWords() {
     return this._wakeWords;
   }
@@ -268,7 +272,7 @@ class SpeechRecognition {
   };
   onabort = (): void => {
     this._debug && console.log('Recognition aborted');
-  }
+  };
 
   onresult = (value: Array<SpeechRecognitionResultListItem> | SpeechRecognitionResultList): void => {
     this._debug && console.log('Result : ', value);
@@ -345,15 +349,15 @@ class SpeechRecognition {
       this.referenceGrammars &&
         this.referenceGrammars.length &&
         (dynamicGrammar as DynamicGrammarBuilder).addReferenceGrammar(this.referenceGrammars);
-      
+
       // Add phrases
       const { phrases } = this._grammars;
       if (phrases && phrases.length) {
         const phraseList = SDK.PhraseListGrammar.fromRecognizer(this.recognizer);
-        phrases.forEach((phrase) => {
+        phrases.forEach(phrase => {
           phraseList.addPhrase(phrase);
-        })
-      };
+        });
+      }
     } else {
       this.recognizer = null;
     }
@@ -512,7 +516,7 @@ class SpeechRecognition {
             // Update: "speechEndDetected" is fired for DLSpeech.listenOnceAsync()
             queue.push({ speechEndDetected: { sessionId } });
           };
-          
+
           await cognitiveServicesAsyncToPromise(
             this.recognizer.startContinuousRecognitionAsync.bind(this.recognizer)
           )();
@@ -648,24 +652,23 @@ class SpeechRecognition {
                   if (recognizable) {
                     finalizedResults = [...finalizedResults, ...result];
 
-                    this.continuous &&
-                      this.interimResults &&
+                    if (this._interimResults) {
                       this.processSendEvent('result', {
                         results: finalizedResults
                       });
 
-                    this._passive &&
-                      this.interimResults &&
-                      this.processSendEvent('passiveresult', {
-                        results: result
-                      });
+                      this._passive &&
+                        this.processSendEvent('passiveresult', {
+                          results: result
+                        });
+                    }
                   }
 
                   // If it is continuous, we just sent the finalized results. So we don't need to send it again after "audioend" event.
-                  if (this.continuous && recognizable) {
+                  if (this._continuous && recognizable) {
                     finalEvent = null;
                   } else {
-                    this.interimResults &&
+                    this._interimResults &&
                       (finalEvent = {
                         data: {
                           results: finalizedResults
@@ -674,7 +677,7 @@ class SpeechRecognition {
                       });
                   }
 
-                  if (!this.continuous && this.recognizer.stopContinuousRecognitionAsync) {
+                  if (!this._continuous && this.recognizer.stopContinuousRecognitionAsync) {
                     await cognitiveServicesAsyncToPromise(
                       this.recognizer.stopContinuousRecognitionAsync.bind(this.recognizer)
                     )();
@@ -687,40 +690,32 @@ class SpeechRecognition {
                     finalEvent = null;
                   }
                 } else if (recognizing) {
-                  if (this._passive) {
-                    const result = cognitiveServiceEventResultToWebSpeechRecognitionResultList(recognizing.result, {
-                      maxAlternatives: this.maxAlternatives,
-                      textNormalization: this.textNormalization
-                    });
+                  const result = cognitiveServiceEventResultToWebSpeechRecognitionResultList(recognizing.result, {
+                    maxAlternatives: this.maxAlternatives,
+                    textNormalization: this.textNormalization
+                  });
 
+                  if (this._passive && this._wakeWords && this._wakeWords.length > 0) {
                     // Test wake words if some are present
-                    if (this._wakeWords && this._wakeWords.length > 0) {
-                      if (result && Array.isArray(result) && result.length > 0 && result[0].transcript) {
-                        const { transcript } = { ...result[0] };
-                        this._wakeWords.forEach(wakeWord => {
-                          if (transcript.toLowerCase().includes(wakeWord.toLowerCase())) {
-                            this.processSendEvent('wakeup');
-                          }
-                        });
-                      }
+                    if (result && Array.isArray(result) && result.length > 0 && result[0].transcript) {
+                      const { transcript } = { ...result[0] };
+                      this._wakeWords.forEach(wakeWord => {
+                        if (transcript.toLowerCase().includes(wakeWord.toLowerCase())) {
+                          this.processSendEvent('wakeup');
+                        }
+                      });
                     }
 
-                    this.interimResults &&
+                    this._interimResults &&
                       this.processSendEvent('passiveresult', {
                         results: result
                       });
-                  } else {
-                    this.interimResults &&
-                      this.processSendEvent('result', {
-                        results: [
-                          ...finalizedResults,
-                          ...cognitiveServiceEventResultToWebSpeechRecognitionResultList(recognizing.result, {
-                            maxAlternatives: this.maxAlternatives,
-                            textNormalization: this.textNormalization
-                          })
-                        ]
-                      });
                   }
+
+                  this._interimResults &&
+                    this.processSendEvent('result', {
+                      results: [...finalizedResults, ...result]
+                    });
                 }
               }
             }
