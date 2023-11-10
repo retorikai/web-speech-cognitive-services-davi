@@ -8,7 +8,7 @@ import getPonyfillCapabilities from '../../getPonyfillCapabilities';
 
 import { ABORT_SPEECH_RECOGNITION } from '../actions/abortSpeechRecognition';
 import { START_SPEECH_RECOGNITION } from '../actions/startSpeechRecognition';
-// import setSpeechRecognitionInstance from '../actions/setSpeechRecognitionInstance';
+import setSpeechRecognitionInstance from '../actions/setSpeechRecognitionInstance';
 import stopSpeechRecognition, { STOP_SPEECH_RECOGNITION } from '../actions/stopSpeechRecognition';
 
 function sleep(duration) {
@@ -23,7 +23,7 @@ function* startSpeechRecognition({ getCancelReason }) {
 
   try {
     const {
-      ponyfill: { SpeechRecognition },
+      ponyfill: { speechRecognition },
       ponyfillType,
       speechRecognitionContinuous: continuous,
       speechRecognitionInterimResults: interimResults,
@@ -32,16 +32,11 @@ function* startSpeechRecognition({ getCancelReason }) {
       speechRecognitionPhrases: phrases
     } = yield select();
 
-    const data = {
-      passive: false,
-      wakeWords: ['bonjour', 'le monde'],
-      continuous,
-      interimResults,
-      lang: language,
-      grammarsList: phrases
-    }
-
-    speechRecognition = new SpeechRecognition(data);
+    speechRecognition.continuous = continuous;
+    speechRecognition.interimResults = interimResults;
+    speechRecognition.lang = language;
+    speechRecognition.maxAlternatives = maxAlternatives;
+    speechRecognition.grammarsList = phrases;
 
     const ponyfillCapabilities = getPonyfillCapabilities(ponyfillType);
 
@@ -50,7 +45,7 @@ function* startSpeechRecognition({ getCancelReason }) {
       speechRecognition.maxAlternatives = maxAlternatives;
     }
 
-    // yield put(setSpeechRecognitionInstance(speechRecognition));
+    yield put(setSpeechRecognitionInstance(speechRecognition));
 
     yield call(
       () =>

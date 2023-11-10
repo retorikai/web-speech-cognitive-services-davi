@@ -34,7 +34,7 @@ function* setPonyfillSaga() {
     yield put(
       setPonyfill({
         SpeechGrammarList: window.SpeechGrammarList || window.webkitSpeechGrammarList,
-        SpeechRecognition: window.SpeechRecognition || window.webkitSpeechRecognition,
+        speechRecognition: window.SpeechRecognition || window.webkitSpeechRecognition,
         speechSynthesis: window.speechSynthesis,
         SpeechSynthesisUtterance: window.SpeechSynthesisUtterance
       })

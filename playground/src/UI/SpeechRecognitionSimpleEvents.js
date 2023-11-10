@@ -2,7 +2,6 @@
 
 import { useSelector } from 'react-redux';
 import React from 'react';
-
 import Popover from '../Bootstrap/Popover';
 
 const SpeechRecognitionSimpleEvents = () => {
@@ -27,24 +26,17 @@ const SpeechRecognitionSimpleEvents = () => {
                 <span className="badge badge-info">{event.type}</span>
                 <span>
                   &nbsp;
-                  {[].map.call(event.results, (result, index) => (
+                  {event.results && event.results.length && event.results.map(({ confidence, transcript }, index) => (
                     <React.Fragment key={index}>
                       <div style={{ display: 'inline-block' }}>
-                        {!!result.isFinal && (
-                          <React.Fragment>
-                            <span className="badge badge-dark">isFinal</span>&nbsp;
-                          </React.Fragment>
-                        )}
-                        {[].map.call(result, ({ confidence, transcript }, index) => (
-                          <React.Fragment key={index}>
-                            <span className="badge badge-pill badge-primary">{transcript}</span>
-                            &nbsp;
-                            <span className="badge badge-pill badge-success" key={index}>
-                              {Math.round(confidence * 100)}%
-                            </span>
-                            <br />
-                          </React.Fragment>
-                        ))}
+                        <React.Fragment key={index}>
+                          <span className="badge badge-pill badge-primary">{transcript}</span>
+                          &nbsp;
+                          <span className="badge badge-pill badge-success" key={index}>
+                            {Math.round(confidence * 100)}%
+                          </span>
+                          <br />
+                        </React.Fragment>
                       </div>
                       &nbsp;
                     </React.Fragment>
