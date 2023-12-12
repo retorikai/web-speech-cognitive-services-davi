@@ -1,7 +1,3 @@
-import createSpeechRecognitionPonyfill, {
-  createSpeechRecognitionPonyfillFromRecognizer
-} from './SpeechToText/createSpeechRecognitionPonyfill';
+import createSpeechRecognitionPonyfill from './SpeechToText/createSpeechRecognitionPonyfill';
 
 export default createSpeechRecognitionPonyfill;
-
-export { createSpeechRecognitionPonyfillFromRecognizer };

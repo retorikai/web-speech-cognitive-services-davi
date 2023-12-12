@@ -2,6 +2,7 @@ import { createSpeechRecognitionPonyfill } from './data/SpeechToText/createSpeec
 import { SpeechSynthesis, createSpeechSynthesisPonyfill } from './data/TextToSpeech/createSpeechSynthesisPonyfill';
 import fetchAuthorizationToken from './data/fetchAuthorizationToken';
 import SpeechSynthesisUtterance from './data/TextToSpeech/SpeechSynthesisUtterance';
+import SpeechGrammarList from './data/SpeechToText/SpeechGrammarList';
 import type { PonyfillOptions } from './models/credentialTypes';
 import type {
   SpeechRecognitionProps,
@@ -29,7 +30,8 @@ export {
   createSpeechSynthesisPonyfill,
   fetchAuthorizationToken,
   SpeechSynthesisUtterance,
-  SpeechSynthesis
+  SpeechSynthesis,
+  SpeechGrammarList
 };
 
 export type {
