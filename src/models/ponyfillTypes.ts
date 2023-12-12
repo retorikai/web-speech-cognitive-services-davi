@@ -1,4 +1,5 @@
 import { SpeechRecognition } from "../data/SpeechToText/createSpeechRecognitionPonyfill"
+import SpeechGrammarList from "../data/SpeechToText/SpeechGrammarList"
 import { SpeechSynthesis } from "../data/TextToSpeech/createSpeechSynthesisPonyfill"
 import SpeechSynthesisUtterance from "../data/TextToSpeech/SpeechSynthesisUtterance"
 
@@ -9,6 +10,7 @@ interface SpeechSynthesisPonyfillType {
 
 interface SpeechRecognitionPonyfillType {
   speechRecognition: SpeechRecognition
+  SpeechGrammarList: typeof SpeechGrammarList
 }
 
 interface SpeechRecognitionProps {
