@@ -387,7 +387,9 @@ class SpeechRecognition {
   toggleContinuousPassiveToActive = async (): Promise<void> => {
     if (this._continuous && this.recognizer && this.audioConfig && this.speechConfig) {
       // Stop current recognition and start a new one
-      await cognitiveServicesAsyncToPromise(this.recognizer.stopContinuousRecognitionAsync.bind(this.recognizer))();
+      if (this.started) {
+        await cognitiveServicesAsyncToPromise(this.recognizer.stopContinuousRecognitionAsync.bind(this.recognizer))();
+      }
       this._passive = false;
       this.start();
     }
@@ -759,7 +761,8 @@ class SpeechRecognition {
 
 const createSpeechRecognitionPonyfill = (options: PatchOptions, data?: SpeechRecognitionProps) => {
   return {
-    speechRecognition: new SpeechRecognition(options, data)
+    speechRecognition: new SpeechRecognition(options, data),
+    SpeechGrammarList
   };
 };
 

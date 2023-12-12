@@ -1,6 +1,6 @@
 {
   "name": "@davi-ai/web-speech-cognitive-services-davi",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "description": "Polyfill Web Speech API with Cognitive Services Speech-to-Text service",
   "author": "DAVI",
   "license": "MIT",
@@ -30,7 +30,7 @@
   "dependencies": {
     "base64-arraybuffer": "1.0.2",
     "memoize-one": "6.0.0",
-    "microsoft-cognitiveservices-speech-sdk": "^1.32.0",
+    "microsoft-cognitiveservices-speech-sdk": "^1.33.1",
     "on-error-resume-next": "1.1.0",
     "p-defer": "4.0.0",
     "p-defer-es5": "2.0.1",

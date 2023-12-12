@@ -25,7 +25,7 @@
     "@azure/ms-rest-browserauth": "^1.0.2",
     "classnames": "^2.3.2",
     "glamor": "^2.20.40",
-    "microsoft-cognitiveservices-speech-sdk": "^1.32.0",
+    "microsoft-cognitiveservices-speech-sdk": "^1.33.1",
     "on-error-resume-next": "^1.1.0",
     "p-defer": "^4.0.0",
     "p-defer-es5": "^2.0.1",
