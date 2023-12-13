@@ -258,6 +258,9 @@ class SpeechRecognition {
   onstart = (): void => {};
   onend = (): void => {};
 
+  onpassivestart = (): void => {};
+  onpassiveend = (): void => {};
+
   onaudiostart = (): void => {};
   onaudioend = (): void => {};
 
@@ -398,12 +401,21 @@ class SpeechRecognition {
   processSendEvent = (type: string, data?: any): void => {
     this._debug && console.log('Speech Recognizer Event : type = ', type, '\n, data = ', data);
     switch (type) {
-      case 'start':
-        this.onstart && this.onstart();
+      case 'start': {
+        if (this._passive) {
+          this.onpassivestart && this.onpassivestart();
+        } else {
+          this.onstart && this.onstart();
+        }
         this.started = true;
         break;
+      }
       case 'end':
-        this.onend && this.onend();
+        if (this._passive) {
+          this.onpassiveend && this.onpassiveend();
+        } else {
+          this.onend && this.onend();
+        }
         this.started = false;
         break;
       case 'audiostart':
