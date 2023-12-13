@@ -393,7 +393,27 @@ class SpeechRecognition {
       if (this.started) {
         await cognitiveServicesAsyncToPromise(this.recognizer.stopContinuousRecognitionAsync.bind(this.recognizer))();
       }
+      this._continuous = false;
       this._passive = false;
+      this.start();
+    }
+  };
+
+  /**
+   * In continuous mode, toggle from passive to active mode by stopping current recognition and starting a new one to prevent
+   * receiving results from a current passive speech recognition.
+   * If you don't care about having existing results in active recognition, just set recognition's 'passive' variable to 'false' instead
+   * of using this method.
+   */
+  toggleContinuousActiveToPassive = async (): Promise<void> => {
+    if (!this._continuous && this.recognizer && this.audioConfig && this.speechConfig) {
+      // Stop current recognition and start a new one
+      if (this.started) {
+        await cognitiveServicesAsyncToPromise(this.recognizer.stopContinuousRecognitionAsync.bind(this.recognizer))();
+      }
+
+      this._continuous = true;
+      this._passive = true;
       this.start();
     }
   };

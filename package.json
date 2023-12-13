@@ -1,6 +1,6 @@
 {
   "name": "@davi-ai/web-speech-cognitive-services-davi",
-  "version": "2.0.5",
+  "version": "2.0.6",
   "description": "Polyfill Web Speech API with Cognitive Services Speech-to-Text service",
   "author": "DAVI",
   "license": "MIT",
