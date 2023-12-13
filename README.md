@@ -165,8 +165,13 @@ This comes from the fact that we can't use custom keywords in speech recognition
 Here is the basic implementation. You can overload each and any by attaching callbacks to your speechRecognitionPonyfill.speechRecognition, if you need.
 
 ```ts
+// These 2 callbakcs are called only in active mode
 onstart = (): void => {};
 onend = (): void => {};
+
+// These 2 callbakcs are called only in passive mode
+onpassivestart = (): void => {};
+onpassiveend = (): void => {};
 
 onaudiostart = (): void => {};
 onaudioend = (): void => {};
