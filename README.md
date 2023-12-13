@@ -207,6 +207,7 @@ onwakeup = (): void => {
 
 #### New methods
 
-Two new methods were implemented, to make it easier to use some functionalities :
+Three new methods were implemented, to make it easier to use some functionalities :
 - async changeLanguage(lang?: string): Promise<void> -> call this one to change the recognition language in one go. This method stops the current recognition, changes the language, and starts a new recognition if the continuous parameter in on.
-- async toggleContinuousPassiveToActive(): Promise<void> -> when toggling from passive to active mode by changing the 'passive' variable, if there is a current recognition, this one will not stop and will continue, adding existing results to the future ones. In our use case, we don't want that to happen. We prefer stopping the current recognition, to starts brand new one without existing result.
+- async toggleContinuousPassiveToActive(): Promise<void> -> when toggling from continuous passive to active mode by changing the 'passive' and 'continuous' variables, if there is a current recognition, this one will not stop and will continue, adding existing results to the future ones. In our use case, we don't want that to happen. We prefer stopping the current recognition, to start a brand new one without existing result.
+- async toggleContinuousActiveToPassive(): Promise<void> -> when toggling from active to continuous passive mode by changing the 'passive' and 'continuous' variables, the current active recognition is oftern already ended, so to prevent troubles we force stopping the current recognition if it is still running, to start a new continuous one.
