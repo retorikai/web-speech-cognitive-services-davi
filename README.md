@@ -129,6 +129,7 @@ interface SpeechRecognitionProps {
   lang?: string
   grammarsList?: Array<string> | string
   interimResults?: boolean
+  timerBeforeSpeechEnd?: number // Set delay (in ms) for recognition ending after something has been recognized (silence time at the end of the recognition)
   debug?: boolean               // Log calls to events when true
 }
 
@@ -140,6 +141,7 @@ const options: SpeechRecognitionProps = {
   interimResults: true,
   grammarsList: [],
   lang: 'en-US',
+  timerBeforeSpeechEnd: 3000,
   debug: false
 }
 

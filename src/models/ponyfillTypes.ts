@@ -21,6 +21,7 @@ interface SpeechRecognitionProps {
   lang?: string
   grammarsList?: Array<string> | string
   interimResults?: boolean
+  timerBeforeSpeechEnd?: number
   debug?: boolean
 }
 
