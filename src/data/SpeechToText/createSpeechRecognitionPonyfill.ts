@@ -188,7 +188,7 @@ class SpeechRecognition {
       try {
         this.audioConfig = audioConfig || SDK.AudioConfig.fromDefaultMicrophoneInput();
 
-        this.initRecognizer(fetchCredentials, speechRecognitionEndpointId);
+        this.initRecognizer(fetchCredentials, speechRecognitionEndpointId, data?.timerBeforeSpeechEnd);
       } catch (e) {
         console.warn(e)
       }
@@ -303,7 +303,7 @@ class SpeechRecognition {
    * @param fetchCredentials Function
    * @param speechRecognitionEndpointId string | undefined
    */
-  initRecognizer = async (fetchCredentials: Function, speechRecognitionEndpointId?: string): Promise<void> => {
+  initRecognizer = async (fetchCredentials: Function, speechRecognitionEndpointId?: string, timerBeforeSpeechEnd?: number): Promise<void> => {
     const {
       authorizationToken,
       region = 'westus',
@@ -333,6 +333,7 @@ class SpeechRecognition {
 
       this.speechConfig.outputFormat = SDK.OutputFormat.Detailed;
       this.speechConfig.speechRecognitionLanguage = this._lang || 'en-US';
+      timerBeforeSpeechEnd && this.speechConfig.setProperty(SDK.PropertyId[SDK.PropertyId.Speech_SegmentationSilenceTimeoutMs], `${timerBeforeSpeechEnd}`);
 
       this._autoStart && this.start();
     }
