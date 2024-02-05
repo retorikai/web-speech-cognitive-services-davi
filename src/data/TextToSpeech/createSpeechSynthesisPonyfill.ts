@@ -111,8 +111,13 @@ class SpeechSynthesis {
   // Cancel current synthesis
   cancel(): void {
     if (this.synthesizing) {
-      this.synth && this.synth.close();
-      this.queue = [];
+      try {
+        // @ts-ignore
+        this.synth && !this.synth.privDisposed && this.synth.close();
+        this.queue = [];
+      } catch (e) {
+        console.warn(e);
+      }
     } else if (this.speaking) {
       try {
         this.speakerAudioDestination.pause();
