@@ -88,12 +88,11 @@ class SpeechSynthesis {
   }
 
   // Function to recreate the synthesizer
-  createSynthesizer(voice, stream): void {
+  createSynthesizer(voice: string | undefined, stream: SDK.AudioOutputStream | undefined | null): void {
     if (stream) {
       this.audioConfig = SDK.AudioConfig.fromStreamOutput(stream)
     } else {
       this.speakerAudioDestination = new SDK.SpeakerAudioDestination();
-
       this.audioConfig = SDK.AudioConfig.fromSpeakerOutput(this.speakerAudioDestination);
     }
     
@@ -214,7 +213,7 @@ class SpeechSynthesis {
    * Launch synthesis and play sound with the speech synthesizer
    * @param {SpeechSynthesisUtterance} utterance 
    */
-  speak(utterance, stream) {
+  speak(utterance: SpeechSynthesisUtterance, stream: SDK.AudioOutputStream | undefined | null) {
     // Test utterance
     if (!(utterance instanceof SpeechSynthesisUtterance)) {
       throw new Error('invalid utterance');
@@ -287,6 +286,7 @@ class SpeechSynthesis {
             }
       }
     };
+    
     processQueue(); // Start processing the queue
     this.canceled = false; // Reset canceled state after processing the queue
   }
